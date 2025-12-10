@@ -1,551 +1,394 @@
-<!doctype html>
-<html lang="ko" class="h-full">
- <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 뉴런 트레이너</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/_sdk/data_sdk.js"></script>
-  <script src="/_sdk/element_sdk.js"></script>
-  <style>
-    body {
-      box-sizing: border-box;
-    }
-    
-    @keyframes pulse-glow {
-      0%, 100% { filter: brightness(1) drop-shadow(0 0 5px currentColor); }
-      50% { filter: brightness(1.2) drop-shadow(0 0 15px currentColor); }
-    }
-    
-    @keyframes bounce-in {
-      0% { transform: scale(0); opacity: 0; }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); opacity: 1; }
-    }
-    
-    @keyframes slide-up {
-      0% { transform: translateY(20px); opacity: 0; }
-      100% { transform: translateY(0); opacity: 1; }
-    }
-    
-    @keyframes celebrate {
-      0%, 100% { transform: rotate(0deg) scale(1); }
-      25% { transform: rotate(-10deg) scale(1.1); }
-      75% { transform: rotate(10deg) scale(1.1); }
-    }
-    
-    .neuron {
-      transition: all 0.3s ease;
-    }
-    
-    .neuron.active {
-      animation: pulse-glow 0.8s ease-in-out;
-    }
-    
-    .score-popup {
-      animation: bounce-in 0.4s ease-out;
-    }
-    
-    .level-up {
-      animation: celebrate 0.6s ease-in-out;
-    }
-    
-    .connection-line {
-      transition: all 0.4s ease;
-    }
-    
-    .connection-line.active {
-      stroke-width: 4;
-      filter: drop-shadow(0 0 8px currentColor);
-    }
-  </style>
-  <style>@view-transition { navigation: auto; }</style>
- </head>
- <body class="h-full">
-  <div id="app" class="w-full h-full overflow-auto"></div>
-  <script>
-    const defaultConfig = {
-      background_color: "#FFF4E6",
-      surface_color: "#FFFFFF",
-      text_color: "#2D3748",
-      primary_action_color: "#FF6B9D",
-      secondary_action_color: "#4ECDC4",
-      font_family: "sans-serif",
-      font_size: 16,
-      game_title: "🧠 AI 뉴런 트레이너",
-      instruction_text: "패턴을 학습하는 AI가 되어보세요!",
-      start_button_text: "게임 시작",
-      leaderboard_title: "🏆 최고 기록"
-    };
-
-    let currentRecordCount = 0;
-    let allScores = [];
-    let gameState = {
-      score: 0,
-      level: 1,
-      pattern: [],
-      userPattern: [],
-      isPlaying: false,
-      neurons: []
-    };
-
-    const dataHandler = {
-      onDataChanged(data) {
-        currentRecordCount = data.length;
-        allScores = data.sort((a, b) => b.score - a.score);
-        updateLeaderboard();
-      }
-    };
-
-    async function init() {
-      const initResult = await window.dataSdk.init(dataHandler);
-      if (!initResult.isOk) {
-        console.error("Failed to initialize data SDK");
-      }
-      
-      await window.elementSdk.init({
-        defaultConfig,
-        onConfigChange: async (config) => {
-          const app = document.getElementById('app');
-          const customFont = config.font_family || defaultConfig.font_family;
-          const baseFontStack = 'Arial, sans-serif';
-          const baseSize = config.font_size || defaultConfig.font_size;
-          
-          app.style.fontFamily = `${customFont}, ${baseFontStack}`;
-          app.style.backgroundColor = config.background_color || defaultConfig.background_color;
-          
-          const title = document.getElementById('game-title');
-          if (title) {
-            title.textContent = config.game_title || defaultConfig.game_title;
-            title.style.fontSize = `${baseSize * 2}px`;
-            title.style.color = config.text_color || defaultConfig.text_color;
-          }
-          
-          const instruction = document.getElementById('instruction-text');
-          if (instruction) {
-            instruction.textContent = config.instruction_text || defaultConfig.instruction_text;
-            instruction.style.fontSize = `${baseSize}px`;
-            instruction.style.color = config.text_color || defaultConfig.text_color;
-          }
-          
-          const startBtn = document.getElementById('start-btn');
-          if (startBtn) {
-            startBtn.textContent = config.start_button_text || defaultConfig.start_button_text;
-            startBtn.style.backgroundColor = config.primary_action_color || defaultConfig.primary_action_color;
-            startBtn.style.fontSize = `${baseSize * 1.25}px`;
-          }
-          
-          const leaderboardTitle = document.getElementById('leaderboard-title');
-          if (leaderboardTitle) {
-            leaderboardTitle.textContent = config.leaderboard_title || defaultConfig.leaderboard_title;
-            leaderboardTitle.style.fontSize = `${baseSize * 1.5}px`;
-            leaderboardTitle.style.color = config.text_color || defaultConfig.text_color;
-          }
-          
-          document.querySelectorAll('.score-text').forEach(el => {
-            el.style.fontSize = `${baseSize * 1.25}px`;
-            el.style.color = config.text_color || defaultConfig.text_color;
-          });
-          
-          document.querySelectorAll('.level-text').forEach(el => {
-            el.style.fontSize = `${baseSize}px`;
-            el.style.color = config.text_color || defaultConfig.text_color;
-          });
-          
-          document.querySelectorAll('.card').forEach(el => {
-            el.style.backgroundColor = config.surface_color || defaultConfig.surface_color;
-          });
-          
-          document.querySelectorAll('.neuron-btn').forEach(el => {
-            el.style.backgroundColor = config.secondary_action_color || defaultConfig.secondary_action_color;
-          });
-          
-          document.querySelectorAll('.submit-btn').forEach(el => {
-            el.style.backgroundColor = config.primary_action_color || defaultConfig.primary_action_color;
-            el.style.fontSize = `${baseSize}px`;
-          });
-        },
-        mapToCapabilities: (config) => ({
-          recolorables: [
-            {
-              get: () => config.background_color || defaultConfig.background_color,
-              set: (value) => {
-                config.background_color = value;
-                window.elementSdk.setConfig({ background_color: value });
-              }
-            },
-            {
-              get: () => config.surface_color || defaultConfig.surface_color,
-              set: (value) => {
-                config.surface_color = value;
-                window.elementSdk.setConfig({ surface_color: value });
-              }
-            },
-            {
-              get: () => config.text_color || defaultConfig.text_color,
-              set: (value) => {
-                config.text_color = value;
-                window.elementSdk.setConfig({ text_color: value });
-              }
-            },
-            {
-              get: () => config.primary_action_color || defaultConfig.primary_action_color,
-              set: (value) => {
-                config.primary_action_color = value;
-                window.elementSdk.setConfig({ primary_action_color: value });
-              }
-            },
-            {
-              get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
-              set: (value) => {
-                config.secondary_action_color = value;
-                window.elementSdk.setConfig({ secondary_action_color: value });
-              }
-            }
-          ],
-          borderables: [],
-          fontEditable: {
-            get: () => config.font_family || defaultConfig.font_family,
-            set: (value) => {
-              config.font_family = value;
-              window.elementSdk.setConfig({ font_family: value });
-            }
-          },
-          fontSizeable: {
-            get: () => config.font_size || defaultConfig.font_size,
-            set: (value) => {
-              config.font_size = value;
-              window.elementSdk.setConfig({ font_size: value });
-            }
-          }
-        }),
-        mapToEditPanelValues: (config) => new Map([
-          ["game_title", config.game_title || defaultConfig.game_title],
-          ["instruction_text", config.instruction_text || defaultConfig.instruction_text],
-          ["start_button_text", config.start_button_text || defaultConfig.start_button_text],
-          ["leaderboard_title", config.leaderboard_title || defaultConfig.leaderboard_title]
-        ])
-      });
-      
-      renderApp();
-    }
-
-    function renderApp() {
-      const config = window.elementSdk.config;
-      const app = document.getElementById('app');
-      
-      app.innerHTML = `
-        <div class="min-h-full p-6">
-          <div class="max-w-6xl mx-auto">
-            <!-- Header -->
-            <div class="text-center mb-8">
-              <h1 id="game-title" class="text-5xl font-bold mb-3">${config.game_title || defaultConfig.game_title}</h1>
-              <p id="instruction-text" class="text-xl">${config.instruction_text || defaultConfig.instruction_text}</p>
-            </div>
-
-            <!-- Game Stats -->
-            <div class="grid grid-cols-2 gap-4 mb-6 max-w-md mx-auto">
-              <div class="card rounded-2xl p-4 text-center shadow-lg">
-                <div class="text-4xl mb-2">⭐</div>
-                <div id="score-display" class="score-text font-bold">0점</div>
-              </div>
-              <div class="card rounded-2xl p-4 text-center shadow-lg">
-                <div class="text-4xl mb-2">🎯</div>
-                <div id="level-display" class="level-text font-semibold">레벨 1</div>
-              </div>
-            </div>
-
-            <!-- Start Screen -->
-            <div id="start-screen" class="text-center mb-8">
-              <div class="card rounded-3xl p-8 max-w-xl mx-auto shadow-xl">
-                <div class="text-6xl mb-6">🤖</div>
-                <p class="text-lg mb-6">AI는 패턴을 학습해요! 뉴런들이 켜지는 순서를 기억하고 따라해보세요. 레벨이 올라갈수록 패턴이 길어져요!</p>
-                <button id="start-btn" class="submit-btn text-white font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
-                  ${config.start_button_text || defaultConfig.start_button_text}
-                </button>
-              </div>
-            </div>
-
-            <!-- Game Screen -->
-            <div id="game-screen" class="hidden">
-              <div class="card rounded-3xl p-8 max-w-2xl mx-auto shadow-xl mb-6">
-                <div class="text-center mb-6">
-                  <div class="text-2xl font-bold mb-2">🧠 신경망 네트워크</div>
-                  <p class="text-sm">패턴을 학습하는 중...</p>
-                </div>
-                
-                <!-- Neural Network Visualization -->
-                <svg id="network-svg" viewBox="0 0 400 300" class="w-full h-64 mb-6">
-                  <!-- Connections will be drawn here -->
-                </svg>
-                
-                <!-- Neuron Buttons -->
-                <div id="neurons-container" class="grid grid-cols-4 gap-4 mb-6"></div>
-                
-                <div class="text-center">
-                  <button id="submit-pattern-btn" class="submit-btn text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all hidden">
-                    답안 제출하기
-                  </button>
-                  <div id="feedback-message" class="mt-4 text-lg font-bold"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Leaderboard -->
-            <div class="card rounded-3xl p-6 max-w-xl mx-auto shadow-xl">
-              <h2 id="leaderboard-title" class="text-center font-bold mb-4">${config.leaderboard_title || defaultConfig.leaderboard_title}</h2>
-              <div id="leaderboard-list" class="space-y-2"></div>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      document.getElementById('start-btn').addEventListener('click', startGame);
-      updateLeaderboard();
-    }
-
-    function startGame() {
-      gameState.score = 0;
-      gameState.level = 1;
-      gameState.isPlaying = true;
-      
-      document.getElementById('start-screen').classList.add('hidden');
-      document.getElementById('game-screen').classList.remove('hidden');
-      
-      generateNeurons();
-      nextLevel();
-    }
-
-    function generateNeurons() {
-      const container = document.getElementById('neurons-container');
-      const config = window.elementSdk.config;
-      container.innerHTML = '';
-      
-      for (let i = 0; i < 8; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'neuron neuron-btn w-full aspect-square rounded-2xl text-3xl font-bold shadow-lg hover:shadow-xl transform hover:scale-110 transition-all';
-        btn.style.backgroundColor = config.secondary_action_color || defaultConfig.secondary_action_color;
-        btn.style.color = '#FFFFFF';
-        btn.textContent = String.fromCodePoint(0x1F9E0 + i);
-        btn.dataset.index = i;
-        btn.addEventListener('click', () => handleNeuronClick(i));
-        container.appendChild(btn);
-      }
-      
-      drawNeuralNetwork();
-    }
-
-    function drawNeuralNetwork() {
-      const svg = document.getElementById('network-svg');
-      const config = window.elementSdk.config;
-      svg.innerHTML = '';
-      
-      const inputLayer = [{x: 50, y: 150}];
-      const hiddenLayer = [{x: 200, y: 100}, {x: 200, y: 150}, {x: 200, y: 200}];
-      const outputLayer = [{x: 350, y: 150}];
-      
-      function drawConnections(from, to) {
-        from.forEach(f => {
-          to.forEach(t => {
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', f.x);
-            line.setAttribute('y1', f.y);
-            line.setAttribute('x2', t.x);
-            line.setAttribute('y2', t.y);
-            line.setAttribute('stroke', config.secondary_action_color || defaultConfig.secondary_action_color);
-            line.setAttribute('stroke-width', '2');
-            line.setAttribute('opacity', '0.3');
-            line.classList.add('connection-line');
-            svg.appendChild(line);
-          });
-        });
-      }
-      
-      drawConnections(inputLayer, hiddenLayer);
-      drawConnections(hiddenLayer, outputLayer);
-      
-      function drawNeurons(layer) {
-        layer.forEach(n => {
-          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          circle.setAttribute('cx', n.x);
-          circle.setAttribute('cy', n.y);
-          circle.setAttribute('r', '15');
-          circle.setAttribute('fill', config.primary_action_color || defaultConfig.primary_action_color);
-          circle.setAttribute('stroke', '#FFFFFF');
-          circle.setAttribute('stroke-width', '3');
-          svg.appendChild(circle);
-        });
-      }
-      
-      drawNeurons(inputLayer);
-      drawNeurons(hiddenLayer);
-      drawNeurons(outputLayer);
-    }
-
-    function nextLevel() {
-      gameState.pattern = [];
-      gameState.userPattern = [];
-      
-      const patternLength = Math.min(2 + gameState.level, 8);
-      for (let i = 0; i < patternLength; i++) {
-        gameState.pattern.push(Math.floor(Math.random() * 8));
-      }
-      
-      document.getElementById('level-display').textContent = `레벨 ${gameState.level}`;
-      document.getElementById('feedback-message').textContent = '';
-      document.getElementById('submit-pattern-btn').classList.add('hidden');
-      
-      showPattern();
-    }
-
-    async function showPattern() {
-      const config = window.elementSdk.config;
-      const neurons = document.querySelectorAll('.neuron');
-      const svg = document.getElementById('network-svg');
-      const lines = svg.querySelectorAll('.connection-line');
-      
-      document.getElementById('feedback-message').textContent = '👀 패턴을 기억하세요!';
-      
-      neurons.forEach(n => n.disabled = true);
-      
-      for (let i = 0; i < gameState.pattern.length; i++) {
-        const index = gameState.pattern[i];
-        const neuron = neurons[index];
-        
-        neuron.classList.add('active');
-        neuron.style.backgroundColor = config.primary_action_color || defaultConfig.primary_action_color;
-        
-        lines.forEach(line => line.classList.add('active'));
-        
-        await new Promise(resolve => setTimeout(resolve, 600));
-        
-        neuron.classList.remove('active');
-        neuron.style.backgroundColor = config.secondary_action_color || defaultConfig.secondary_action_color;
-        lines.forEach(line => line.classList.remove('active'));
-        
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      
-      neurons.forEach(n => n.disabled = false);
-      document.getElementById('feedback-message').textContent = '🎮 이제 당신 차례예요!';
-    }
-
-    function handleNeuronClick(index) {
-      if (!gameState.isPlaying) return;
-      
-      const config = window.elementSdk.config;
-      const neuron = document.querySelector(`[data-index="${index}"]`);
-      neuron.classList.add('active');
-      
-      setTimeout(() => {
-        neuron.classList.remove('active');
-      }, 300);
-      
-      gameState.userPattern.push(index);
-      
-      if (gameState.userPattern.length === gameState.pattern.length) {
-        document.getElementById('submit-pattern-btn').classList.remove('hidden');
-        document.getElementById('submit-pattern-btn').addEventListener('click', checkPattern, { once: true });
-      }
-    }
-
-    function checkPattern() {
-      const isCorrect = gameState.pattern.every((val, idx) => val === gameState.userPattern[idx]);
-      const feedback = document.getElementById('feedback-message');
-      
-      if (isCorrect) {
-        const points = gameState.level * 100;
-        gameState.score += points;
-        document.getElementById('score-display').textContent = `${gameState.score}점`;
-        document.getElementById('score-display').classList.add('score-popup');
-        
-        feedback.textContent = `🎉 정답이에요! +${points}점`;
-        feedback.style.color = '#10B981';
-        
-        setTimeout(() => {
-          document.getElementById('score-display').classList.remove('score-popup');
-          gameState.level++;
-          document.getElementById('level-display').classList.add('level-up');
-          setTimeout(() => {
-            document.getElementById('level-display').classList.remove('level-up');
-          }, 600);
-          nextLevel();
-        }, 2000);
-      } else {
-        feedback.textContent = '❌ 다시 도전해보세요!';
-        feedback.style.color = '#EF4444';
-        
-        setTimeout(() => {
-          endGame();
-        }, 2000);
-      }
-    }
-
-    async function endGame() {
-      gameState.isPlaying = false;
-      
-      const feedback = document.getElementById('feedback-message');
-      feedback.textContent = `게임 종료! 최종 점수: ${gameState.score}점`;
-      feedback.style.color = window.elementSdk.config.text_color || defaultConfig.text_color;
-      
-      if (currentRecordCount >= 999) {
-        const message = document.createElement('div');
-        message.className = 'mt-4 p-4 bg-yellow-100 rounded-lg text-center';
-        message.textContent = '⚠️ 최대 기록 수(999개)에 도달했습니다. 새 기록을 저장할 수 없습니다.';
-        feedback.parentElement.appendChild(message);
-      } else {
-        const playerName = `플레이어 ${currentRecordCount + 1}`;
-        const newScore = {
-          id: `score_${Date.now()}`,
-          player_name: playerName,
-          score: gameState.score,
-          level: gameState.level - 1,
-          timestamp: new Date().toISOString()
-        };
-        
-        feedback.textContent = '점수 저장 중...';
-        const result = await window.dataSdk.create(newScore);
-        
-        if (result.isOk) {
-          feedback.textContent = `게임 종료! 최종 점수: ${gameState.score}점 (저장됨)`;
-        } else {
-          feedback.textContent = `게임 종료! 최종 점수: ${gameState.score}점 (저장 실패)`;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 트레이너 게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
-      }
-      
-      setTimeout(() => {
-        document.getElementById('game-screen').classList.add('hidden');
-        document.getElementById('start-screen').classList.remove('hidden');
-      }, 3000);
-    }
-
-    function updateLeaderboard() {
-      const list = document.getElementById('leaderboard-list');
-      if (!list) return;
-      
-      const config = window.elementSdk.config;
-      const baseSize = config.font_size || defaultConfig.font_size;
-      
-      if (allScores.length === 0) {
-        list.innerHTML = `<div class="text-center py-4" style="color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseSize * 0.875}px;">아직 기록이 없어요. 첫 번째 도전자가 되어보세요!</div>`;
-        return;
-      }
-      
-      list.innerHTML = allScores.slice(0, 10).map((score, idx) => `
-        <div class="flex items-center justify-between p-3 rounded-xl" style="background-color: ${config.surface_color || defaultConfig.surface_color}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🎖️'}</span>
-            <div>
-              <div style="font-weight: 600; color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseSize}px;">${score.player_name}</div>
-              <div style="color: ${config.text_color || defaultConfig.text_color}; opacity: 0.7; font-size: ${baseSize * 0.75}px;">레벨 ${score.level}</div>
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .gradient-bg {
+            background: linear-gradient(to bottom right, #fce7f3, #e9d5ff, #dbeafe);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- 헤더 -->
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center gap-3 mb-4">
+                <svg class="w-12 h-12 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                <h1 class="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    AI 트레이너 게임
+                </h1>
             </div>
-          </div>
-          <div style="font-weight: bold; color: ${config.primary_action_color || defaultConfig.primary_action_color}; font-size: ${baseSize * 1.125}px;">${score.score}점</div>
+            <p class="text-xl text-gray-700">딥러닝의 원리를 배워보아요!</p>
         </div>
-      `).join('');
-    }
 
-    init();
-  </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9abccb9625b9d1db',t:'MTc2NTM3MDI2NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+        <!-- 점수판 -->
+        <div class="bg-white rounded-3xl shadow-2xl p-6 mb-6">
+            <div class="flex justify-around items-center">
+                <div class="text-center">
+                    <svg class="w-8 h-8 text-yellow-500 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                    </svg>
+                    <div class="text-2xl font-bold text-purple-600" id="totalScore">0</div>
+                    <div class="text-sm text-gray-600">총점</div>
+                </div>
+                <div class="text-center">
+                    <svg class="w-8 h-8 text-blue-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"/>
+                    </svg>
+                    <div class="text-2xl font-bold text-blue-600" id="currentLevel">1</div>
+                    <div class="text-sm text-gray-600">현재 레벨</div>
+                </div>
+                <div class="text-center">
+                    <svg class="w-8 h-8 text-pink-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                    </svg>
+                    <div class="text-2xl font-bold text-pink-600" id="badgeCount">0</div>
+                    <div class="text-sm text-gray-600">배지</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 게임 영역 -->
+        <div class="bg-white rounded-3xl shadow-2xl p-8" id="gameArea"></div>
+
+        <!-- 배지 컬렉션 -->
+        <div class="mt-6 bg-white rounded-3xl shadow-xl p-6 hidden" id="badgeCollection">
+            <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <svg class="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
+                내 배지 컬렉션
+            </h3>
+            <div class="flex gap-3 flex-wrap" id="badgeList"></div>
+        </div>
+    </div>
+
+    <script>
+        const patterns = {
+            1: {
+                name: "색깔 인식",
+                description: "AI에게 빨간색과 파란색을 구별하는 법을 가르쳐주세요!",
+                options: [
+                    { item: "🍎", answer: "빨강" },
+                    { item: "🍓", answer: "빨강" },
+                    { item: "🌊", answer: "파랑" },
+                    { item: "🦋", answer: "파랑" },
+                    { item: "🌹", answer: "빨강" },
+                    { item: "🐳", answer: "파랑" }
+                ]
+            },
+            2: {
+                name: "크기 비교",
+                description: "AI에게 큰 것과 작은 것을 구별하는 법을 가르쳐주세요!",
+                options: [
+                    { item: "🐘", answer: "크다" },
+                    { item: "🐜", answer: "작다" },
+                    { item: "🦒", answer: "크다" },
+                    { item: "🐝", answer: "작다" },
+                    { item: "🐋", answer: "크다" },
+                    { item: "🐛", answer: "작다" }
+                ]
+            },
+            3: {
+                name: "홀짝 구분",
+                description: "AI에게 홀수와 짝수를 구별하는 법을 가르쳐주세요!",
+                options: [
+                    { item: "2️⃣", answer: "짝수" },
+                    { item: "3️⃣", answer: "홀수" },
+                    { item: "4️⃣", answer: "짝수" },
+                    { item: "5️⃣", answer: "홀수" },
+                    { item: "6️⃣", answer: "짝수" },
+                    { item: "7️⃣", answer: "홀수" }
+                ]
+            }
+        };
+
+        let gameState = {
+            state: 'menu',
+            level: 1,
+            score: 0,
+            totalScore: 0,
+            trainingData: [],
+            currentQuestion: null,
+            accuracy: 0,
+            badges: [],
+            feedback: ''
+        };
+
+        function updateScoreBoard() {
+            document.getElementById('totalScore').textContent = gameState.totalScore;
+            document.getElementById('currentLevel').textContent = gameState.level;
+            document.getElementById('badgeCount').textContent = gameState.badges.length;
+            
+            if (gameState.badges.length > 0 && gameState.state !== 'complete') {
+                const badgeCollection = document.getElementById('badgeCollection');
+                badgeCollection.classList.remove('hidden');
+                const badgeList = document.getElementById('badgeList');
+                badgeList.innerHTML = gameState.badges.map(badge => `
+                    <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl px-4 py-2">
+                        <svg class="w-5 h-5 text-yellow-500 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                        </svg>
+                        <span class="font-bold text-gray-700">${badge}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function startGame() {
+            gameState.state = 'playing';
+            gameState.score = 0;
+            gameState.level = 1;
+            startLevel();
+        }
+
+        function startLevel() {
+            const pattern = patterns[gameState.level];
+            const shuffled = [...pattern.options].sort(() => Math.random() - 0.5);
+            gameState.trainingData = shuffled.slice(0, 3);
+            gameState.currentQuestion = shuffled[3];
+            gameState.accuracy = 0;
+            gameState.feedback = '';
+            render();
+        }
+
+        function trainAI(data, userAnswer) {
+            const isCorrect = data.answer === userAnswer;
+            
+            if (isCorrect) {
+                gameState.accuracy = Math.min(100, gameState.accuracy + 33.3);
+                gameState.feedback = '✅ 정확해요! AI가 학습했어요!';
+                
+                if (gameState.accuracy >= 99) {
+                    setTimeout(() => {
+                        gameState.state = 'result';
+                        render();
+                    }, 1500);
+                }
+            } else {
+                gameState.feedback = '❌ 다시 생각해보세요!';
+            }
+            
+            render();
+            setTimeout(() => {
+                gameState.feedback = '';
+                render();
+            }, 2000);
+        }
+
+        function answerTest(answer) {
+            const isCorrect = gameState.currentQuestion.answer === answer;
+            const points = isCorrect ? 100 * gameState.level : 0;
+            
+            gameState.score += points;
+            gameState.totalScore += points;
+            
+            if (isCorrect) {
+                gameState.feedback = `🎉 정답! +${points}점`;
+                
+                if (gameState.level === 1 && !gameState.badges.includes('색깔마스터')) {
+                    gameState.badges.push('색깔마스터');
+                } else if (gameState.level === 2 && !gameState.badges.includes('크기박사')) {
+                    gameState.badges.push('크기박사');
+                } else if (gameState.level === 3 && !gameState.badges.includes('숫자천재')) {
+                    gameState.badges.push('숫자천재');
+                }
+                
+                render();
+                updateScoreBoard();
+                
+                setTimeout(() => {
+                    if (gameState.level < 3) {
+                        gameState.level++;
+                        gameState.state = 'playing';
+                        startLevel();
+                    } else {
+                        gameState.state = 'complete';
+                        render();
+                    }
+                }, 2000);
+            } else {
+                gameState.feedback = '😢 틀렸어요! 다시 도전해보세요!';
+                render();
+                setTimeout(() => {
+                    gameState.state = 'playing';
+                    startLevel();
+                }, 2000);
+            }
+        }
+
+        function render() {
+            const gameArea = document.getElementById('gameArea');
+            updateScoreBoard();
+
+            if (gameState.state === 'menu') {
+                gameArea.innerHTML = `
+                    <div class="text-center space-y-6">
+                        <div class="text-6xl mb-4">🤖</div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">딥러닝이 뭐예요?</h2>
+                        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 mb-6">
+                            <p class="text-lg text-gray-700 leading-relaxed">
+                                딥러닝은 컴퓨터가 <span class="font-bold text-purple-600">예시를 보고 배우는</span> 기술이에요!
+                                <br>
+                                사람처럼 여러 번 연습하면서 점점 더 <span class="font-bold text-pink-600">똑똑해져요</span> 🧠
+                                <br><br>
+                                이 게임에서는 AI에게 패턴을 가르쳐주고,
+                                <br>
+                                AI가 새로운 문제를 풀 수 있는지 테스트해볼 거예요!
+                            </p>
+                        </div>
+                        <button
+                            onclick="startGame()"
+                            class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-2xl font-bold px-12 py-4 rounded-full hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all shadow-lg">
+                            게임 시작하기! 🚀
+                        </button>
+                    </div>
+                `;
+            } else if (gameState.state === 'playing') {
+                const pattern = patterns[gameState.level];
+                const answers = [...new Set(pattern.options.map(o => o.answer))];
+                
+                gameArea.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="text-center">
+                            <div class="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded-full text-lg font-bold mb-4">
+                                레벨 ${gameState.level}: ${pattern.name}
+                            </div>
+                            <p class="text-gray-700 text-lg">${pattern.description}</p>
+                        </div>
+
+                        <div class="bg-gray-200 rounded-full h-8 overflow-hidden">
+                            <div class="bg-gradient-to-r from-green-400 to-blue-500 h-full transition-all duration-500 flex items-center justify-center text-white font-bold"
+                                style="width: ${gameState.accuracy}%">
+                                ${gameState.accuracy > 10 ? Math.round(gameState.accuracy) + '%' : ''}
+                            </div>
+                        </div>
+                        <div class="text-center text-sm text-gray-600">
+                            AI 학습 정확도 (100%가 되면 테스트!)
+                        </div>
+
+                        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                AI에게 가르쳐주세요!
+                            </h3>
+                            <div class="space-y-3">
+                                ${gameState.trainingData.map((data, idx) => `
+                                    <div class="bg-white rounded-xl p-4 shadow-md">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-5xl">${data.item}</div>
+                                            <div class="flex gap-3">
+                                                ${answers.map(ans => `
+                                                    <button
+                                                        onclick="trainAI(${JSON.stringify(data).replace(/"/g, '&quot;')}, '${ans}')"
+                                                        class="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-6 py-3 rounded-xl font-bold hover:from-purple-500 hover:to-pink-500 transform hover:scale-105 transition-all">
+                                                        ${ans}
+                                                    </button>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        ${gameState.feedback ? `
+                            <div class="text-center text-2xl font-bold animate-pulse">
+                                ${gameState.feedback}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (gameState.state === 'result') {
+                const pattern = patterns[gameState.level];
+                const answers = [...new Set(pattern.options.map(o => o.answer))];
+                
+                gameArea.innerHTML = `
+                    <div class="space-y-6 text-center">
+                        <div class="text-3xl font-bold text-gray-800">
+                            🎯 이제 AI를 테스트해봐요!
+                        </div>
+                        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8">
+                            <p class="text-lg text-gray-700 mb-6">
+                                AI가 배운 내용을 바탕으로 새로운 문제를 풀 수 있을까요?
+                            </p>
+                            <div class="text-8xl mb-6">${gameState.currentQuestion.item}</div>
+                            <p class="text-xl text-gray-700 mb-6">이것은 무엇일까요?</p>
+                            <div class="flex gap-4 justify-center">
+                                ${answers.map(ans => `
+                                    <button
+                                        onclick="answerTest('${ans}')"
+                                        class="bg-gradient-to-r from-green-400 to-blue-400 text-white text-xl px-8 py-4 rounded-xl font-bold hover:from-green-500 hover:to-blue-500 transform hover:scale-105 transition-all shadow-lg">
+                                        ${ans}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ${gameState.feedback ? `
+                            <div class="text-3xl font-bold animate-pulse">
+                                ${gameState.feedback}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (gameState.state === 'complete') {
+                gameArea.innerHTML = `
+                    <div class="text-center space-y-6">
+                        <div class="text-6xl mb-4">🏆</div>
+                        <h2 class="text-4xl font-bold text-gray-800">축하합니다!</h2>
+                        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8">
+                            <p class="text-2xl font-bold text-purple-600 mb-4">
+                                총점: ${gameState.totalScore}점
+                            </p>
+                            <div class="mb-6">
+                                <h3 class="text-xl font-bold text-gray-800 mb-3">획득한 배지</h3>
+                                <div class="flex gap-3 justify-center flex-wrap">
+                                    ${gameState.badges.map(badge => `
+                                        <div class="bg-white rounded-xl px-4 py-2 shadow-md">
+                                            <svg class="w-6 h-6 text-yellow-500 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                            </svg>
+                                            <span class="font-bold text-gray-700">${badge}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl p-6 mt-6">
+                                <h3 class="text-xl font-bold text-gray-800 mb-3">배운 내용 정리</h3>
+                                <p class="text-gray-700 leading-relaxed">
+                                    🎓 <strong>데이터 학습:</strong> AI는 여러 예시를 보면서 패턴을 배워요<br>
+                                    📈 <strong>정확도 향상:</strong> 많이 연습할수록 더 정확해져요<br>
+                                    🎯 <strong>예측하기:</strong> 배운 내용으로 새로운 문제를 풀 수 있어요<br>
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onclick="location.reload()"
+                            class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xl font-bold px-10 py-4 rounded-full hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all shadow-lg">
+                            다시 하기
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 초기 렌더링
+        render();
+    </script>
+</body>
 </html>
