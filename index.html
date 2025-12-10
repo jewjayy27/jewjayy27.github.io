@@ -1,10 +1,531 @@
-<html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jayy's Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg-gradient: radial-gradient(circle at 0% 0%, #f9a8d4 0, transparent 50%),
+                      radial-gradient(circle at 100% 0%, #a5b4fc 0, transparent 50%),
+                      radial-gradient(circle at 0% 100%, #6ee7b7 0, transparent 50%),
+                      radial-gradient(circle at 100% 100%, #f97373 0, transparent 50%);
+      --glass-bg: rgba(255, 255, 255, 0.18);
+      --glass-border: rgba(255, 255, 255, 0.35);
+      --glass-highlight: rgba(255, 255, 255, 0.7);
+      --text-main: #0f172a;
+      --text-sub: #6b7280;
+      --accent: #6366f1;
+      --accent-soft: rgba(99, 102, 241, 0.22);
+      --shadow-soft: 0 24px 60px rgba(15, 23, 42, 0.35);
+      --radius-xl: 24px;
+    }
 
-  <h1>Jayy's Home</h1>
-  <a href="deep learning.html">딥러닝게임</h>
-  <a href="seatingarrangement.html">학급자리배치</h>
-  <a href="ladder.html">커피사다리</h>
-  <a href="AorB.html">둘중에하나</h>
-  <a href="quickmemory.html">기억순발력게임</h>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #020617;
+      background-image: var(--bg-gradient);
+      background-attachment: fixed;
+      color: var(--text-main);
+      overflow: hidden;
+    }
+
+    /* 리퀴드 글래스 배경용 블롭 */
+    .blob {
+      position: fixed;
+      border-radius: 999px;
+      filter: blur(40px);
+      opacity: 0.7;
+      mix-blend-mode: screen;
+      z-index: -2;
+      animation: float 12s ease-in-out infinite alternate;
+    }
+
+    .blob.blob1 {
+      width: 320px;
+      height: 320px;
+      background: #a5b4fc;
+      top: -80px;
+      left: -40px;
+    }
+    .blob.blob2 {
+      width: 380px;
+      height: 380px;
+      background: #f9a8d4;
+      bottom: -120px;
+      right: -40px;
+      animation-duration: 14s;
+    }
+    .blob.blob3 {
+      width: 260px;
+      height: 260px;
+      background: #6ee7b7;
+      top: 50%;
+      left: 70%;
+      transform: translate(-50%, -50%);
+      animation-duration: 16s;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      100% {
+        transform: translate3d(20px, -20px, 0) scale(1.05);
+      }
+    }
+
+    .glass-shell {
+      position: relative;
+      padding: 1px;
+      border-radius: 32px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(148, 163, 184, 0.25));
+      box-shadow: var(--shadow-soft);
+      max-width: 960px;
+      width: 92%;
+      margin: 24px;
+    }
+
+    .glass-inner {
+      position: relative;
+      border-radius: 30px;
+      background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.5), rgba(15, 23, 42, 0.8));
+      padding: 32px 28px 28px;
+      backdrop-filter: blur(26px) saturate(140%);
+      -webkit-backdrop-filter: blur(26px) saturate(140%);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      overflow: hidden;
+    }
+
+    /* 안쪽 반짝이는 라인 */
+    .glass-inner::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), transparent 40%, transparent 60%, rgba(148, 163, 184, 0.6));
+      opacity: 0.35;
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+    }
+
+    header {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+      z-index: 1;
+    }
+
+    .title-wrap {
+      max-width: 420px;
+    }
+
+    h1 {
+      font-size: 32px;
+      letter-spacing: 0.04em;
+      color: #f9fafb;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 span.logo-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      background: radial-gradient(circle at 20% 20%, #fef9c3, #fb7185);
+      box-shadow: 0 10px 20px rgba(248, 113, 113, 0.55);
+      font-size: 22px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #e5e7eb;
+      opacity: 0.9;
+    }
+
+    .tagline {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #cbd5f5;
+      opacity: 0.85;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.5);
+      color: #e5e7eb;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      backdrop-filter: blur(18px);
+    }
+
+    .chip.accent {
+      background: rgba(59, 130, 246, 0.3);
+      border-color: rgba(191, 219, 254, 0.9);
+      color: #eff6ff;
+    }
+
+    main {
+      position: relative;
+      margin-top: 8px;
+      z-index: 1;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    @media (max-width: 720px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .glass-inner {
+        padding: 24px 20px 20px;
+      }
+    }
+
+    .card-link {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 16px 14px;
+      border-radius: 18px;
+      background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.5), rgba(15, 23, 42, 0.85));
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      text-decoration: none;
+      color: #f9fafb;
+      overflow: hidden;
+      cursor: pointer;
+      isolation: isolate;
+      transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease, background 0.28s ease;
+      box-shadow: 0 12px 25px rgba(15, 23, 42, 0.6);
+    }
+
+    .card-link::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.65), transparent 52%);
+      opacity: 0;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      transform: translate3d(-10px, -10px, 0);
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .card-link:hover {
+      transform: translateY(-4px) scale(1.01);
+      border-color: rgba(239, 246, 255, 0.95);
+      background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.68), rgba(15, 23, 42, 0.95));
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.85);
+    }
+
+    .card-link:hover::before {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .icon-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(249, 250, 251, 0.6);
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.7);
+      font-size: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-title span.badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      color: #c7d2fe;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: #e5e7eb;
+      opacity: 0.85;
+      text-align: left;
+      margin-bottom: 10px;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cbd5f5;
+      opacity: 0.9;
+    }
+
+    .pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      margin-right: 4px;
+    }
+
+    .pill-dot.green { background: #4ade80; }
+    .pill-dot.blue { background: #60a5fa; }
+    .pill-dot.pink { background: #fb7185; }
+
+    footer {
+      position: relative;
+      margin-top: 18px;
+      font-size: 11px;
+      color: #cbd5f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      z-index: 1;
+    }
+
+    .hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.7);
+    }
+
+    .hint span.key {
+      padding: 2px 6px;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 6px;
+      border: 1px solid rgba(148, 163, 184, 0.9);
+      font-size: 10px;
+      color: #e5e7eb;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+      margin-right: 4px;
+      box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 리퀴드 블롭들 -->
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+
+  <div class="glass-shell">
+    <div class="glass-inner">
+      <header>
+        <div class="title-wrap">
+          <h1>
+            <span class="logo-pill">🎮</span>
+            Jayy's Home
+          </h1>
+          <p class="subtitle">초등학생도 즐길 수 있는 미니 웹 게임 & 도구 모음</p>
+          <p class="tagline">딥러닝부터 학급 자리까지, 한 번에 모아 놓은 Jayy 선생님의 실험실 ✨</p>
+        </div>
+        <div class="chip-row">
+          <span class="chip accent">Glass & Liquid UI</span>
+          <span class="chip">Made for class 👩‍🏫🧑‍🎓</span>
+          <span class="chip">HTML · CSS · JS</span>
+        </div>
+      </header>
+
+      <main>
+        <div class="grid">
+
+          <!-- 딥러닝게임 -->
+          <a class="card-link" href="deep learning.html">
+            <div class="card-top">
+              <div class="icon-pill">🧠</div>
+              <div>
+                <div class="card-title">
+                  딥러닝 게임
+                  <span class="badge">Deep Learning</span>
+                </div>
+              </div>
+            </div>
+            <p class="card-desc">
+              간단한 규칙으로 딥러닝 원리를 체험해 보는 초등 눈높이 게임.
+              “컴퓨터가 어떻게 배우지?”를 직접 느껴봐요.
+            </p>
+            <div class="card-meta">
+              <span class="pill">
+                <span class="pill-dot green"></span>개념 익히기
+              </span>
+              <span>난이도: ⭐⭐✩</span>
+            </div>
+          </a>
+
+          <!-- 학급 자리 배치 -->
+          <a class="card-link" href="seatingarrangement.html">
+            <div class="card-top">
+              <div class="icon-pill">🪑</div>
+              <div>
+                <div class="card-title">
+                  학급 자리 배치
+                  <span class="badge">Seating</span>
+                </div>
+              </div>
+            </div>
+            <p class="card-desc">
+              공정하고 재미있게 자리를 정해주는 학급 도구.
+              랜덤 배치로 “선생님, 다시요!”를 줄여봐요 😆
+            </p>
+            <div class="card-meta">
+              <span class="pill">
+                <span class="pill-dot.blue pill-dot"></span>학급 운영
+              </span>
+              <span>사용감: 💺💺💺</span>
+            </div>
+          </a>
+
+          <!-- 커피 사다리 -->
+          <a class="card-link" href="ladder.html">
+            <div class="card-top">
+              <div class="icon-pill">☕</div>
+              <div>
+                <div class="card-title">
+                  커피 사다리
+                  <span class="badge">Ladder</span>
+                </div>
+              </div>
+            </div>
+            <p class="card-desc">
+              “나만 아니면 돼…” 스태프들과 커피값 정할 때 쓰는 복불복 사다리 게임.
+              금액 분배까지 자동으로!
+            </p>
+            <div class="card-meta">
+              <span class="pill">
+                <span class="pill-dot pink"></span>교직원 전용 😂
+              </span>
+              <span>웃음지수: 🤣🤣🤣</span>
+            </div>
+          </a>
+
+          <!-- 둘 중에 하나 -->
+          <a class="card-link" href="AorB.html">
+            <div class="card-top">
+              <div class="icon-pill">⚖️</div>
+              <div>
+                <div class="card-title">
+                  둘 중에 하나
+                  <span class="badge">A or B</span>
+                </div>
+              </div>
+            </div>
+            <p class="card-desc">
+              고르기 힘든 음식, 동물 등등… 50단계 토너먼트로 단 한 가지를 남겨요.
+              학급 토론용, 아이스브레이킹용으로도 좋아요.
+            </p>
+            <div class="card-meta">
+              <span class="pill">
+                <span class="pill-dot green"></span>선택 · 토론
+              </span>
+              <span>라운드: 50 단계</span>
+            </div>
+          </a>
+
+          <!-- 기억 순발력 게임 -->
+          <a class="card-link" href="quickmemory.html">
+            <div class="card-top">
+              <div class="icon-pill">⚡</div>
+              <div>
+                <div class="card-title">
+                  기억 순발력 게임
+                  <span class="badge">Memory</span>
+                </div>
+              </div>
+            </div>
+            <p class="card-desc">
+              그림을 잠깐 보여주고 “뭐가 없어졌을까?” “어디로 움직였을까?”를 맞히는 게임.
+              관찰력 · 집중력을 동시에 키워요.
+            </p>
+            <div class="card-meta">
+              <span class="pill">
+                <span class="pill-dot blue"></span>두뇌 · 체육 융합
+              </span>
+              <span>인원: 소·중집단</span>
+            </div>
+          </a>
+
+        </div>
+      </main>
+
+      <footer>
+        <div class="hint">
+          <span class="status-dot"></span>
+          <span>Jayy’s Lab is running · 실험용 웹페이지</span>
+        </div>
+        <div class="hint">
+          <span class="key">Tip</span>
+          <span>브라우저에서 바로 실행되는 정적 웹 프로젝트</span>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+</body>
 </html>
