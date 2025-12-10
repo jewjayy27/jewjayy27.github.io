@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>둘 중에 하나!</title>
+  <style>
+    body {
+      font-family: "Pretendard", system-ui, sans-serif;
+      background: #f4f6fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      background: white;
+      width: 360px;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 22px;
+    }
+
+    .step {
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    .choices {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .choice {
+      flex: 1;
+      padding: 20px;
+      font-size: 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #fafafa;
+    }
+
+    .choice:hover {
+      background: #eef2ff;
+      border-color: #6366f1;
+    }
+
+    .result {
+      font-size: 20px;
+      margin: 20px 0;
+      display: none;
+    }
+
+    .survive {
+      color: #16a34a;
+      font-weight: bold;
+    }
+
+    .die {
+      color: #dc2626;
+      text-decoration: line-through;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 6px;
+    }
+
+    .reset {
+      background: #e5e7eb;
+    }
+
+    .next {
+      background: #6366f1;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>둘 중에 하나!</h1>
+  <div class="step" id="step">1 / 50 단계</div>
+
+  <div class="choices" id="choices">
+    <div class="choice" onclick="selectChoice(0)"></div>
+    <div class="choice" onclick="selectChoice(1)"></div>
+  </div>
+
+  <div class="result" id="result"></div>
+
+  <div>
+    <button class="reset" onclick="resetGame()">처음으로</button>
+    <button class="next" onclick="nextStep()" id="nextBtn" style="display:none;">다음 단계</button>
+  </div>
+</div>
+
+<script>
+  const foods = [
+    "피자","치킨","햄버거","떡볶이","라면","김밥","초밥","파스타",
+    "아이스크림","초콜릿","도넛","샌드위치"
+  ];
+
+  const animals = [
+    "강아지","고양이","토끼","사자","호랑이","펭귄","코끼리",
+    "기린","곰","여우","판다","원숭이"
+  ];
+
+  let step = 1;
+  let maxStep = 50;
+  let currentPair = [];
+
+  const choiceEls = document.querySelectorAll(".choice");
+  const resultEl = document.getElementById("result");
+  const stepEl = document.getElementById("step");
+  const nextBtn = document.getElementById("nextBtn");
+
+  function randomPair() {
+    const isFood = Math.random() < 0.5;
+    const source = isFood ? foods : animals;
+
+    let a = source[Math.floor(Math.random() * source.length)];
+    let b;
+    do {
+      b = source[Math.floor(Math.random() * source.length)];
+    } while (a === b);
+
+    return [a, b];
+  }
+
+  function renderStep() {
+    stepEl.textContent = `${step} / ${maxStep} 단계`;
+    resultEl.style.display = "none";
+    nextBtn.style.display = "none";
+
+    currentPair = randomPair();
+    choiceEls[0].textContent = currentPair[0];
+    choiceEls[1].textContent = currentPair[1];
+  }
+
+  function selectChoice(index) {
+    const survive = currentPair[index];
+    const die = currentPair[1 - index];
+
+    resultEl.innerHTML = `
+      ✅ 생존: <span class="survive">${survive}</span><br/>
+      ❌ 탈락: <span class="die">${die}</span>
+    `;
+    resultEl.style.display = "block";
+    nextBtn.style.display = step < maxStep ? "inline-block" : "none";
+  }
+
+  function nextStep() {
+    if (step < maxStep) {
+      step++;
+      renderStep();
+    }
+  }
+
+  function resetGame() {
+    step = 1;
+    renderStep();
+  }
+
+  // 최초 실행
+  renderStep();
+</script>
+
+</body>
+</html>
