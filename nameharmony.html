@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>이름 궁합 테스트</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, #e0e7ff, #f8fafc);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card {
+      background: white;
+      width: 360px;
+      padding: 24px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 22px;
+    }
+
+    p.desc {
+      font-size: 14px;
+      color: #555;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      font-size: 16px;
+      text-align: center;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 16px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #4f46e5;
+    }
+
+    .result {
+      margin-top: 18px;
+      display: none;
+    }
+
+    .score {
+      font-size: 32px;
+      font-weight: bold;
+      color: #16a34a;
+    }
+
+    .comment {
+      margin-top: 6px;
+      font-size: 15px;
+      color: #374151;
+    }
+
+    .note {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>💖 이름 궁합</h1>
+  <p class="desc">자음 · 모음 · 받침 획수로 보는<br>이름 궁합 놀이</p>
+
+  <input id="name1" placeholder="첫 번째 이름" />
+  <input id="name2" placeholder="두 번째 이름" />
+
+  <button onclick="checkCompatibility()">궁합 보기</button>
+
+  <div class="result" id="result">
+    <div class="score" id="score"></div>
+    <div class="comment" id="comment"></div>
+  </div>
+
+  <div class="note">
+    ※ 재미로 즐기는 활동입니다 🙂
+  </div>
+</div>
+
+<script>
+  // 자음 / 모음 획수 (교육용 단순화 버전)
+  const strokeMap = {
+    "ㄱ":2, "ㄴ":2, "ㄷ":3, "ㄹ":5, "ㅁ":4,
+    "ㅂ":4, "ㅅ":2, "ㅇ":1, "ㅈ":3, "ㅊ":4,
+    "ㅋ":3, "ㅌ":4, "ㅍ":4, "ㅎ":3,
+    "ㅏ":2, "ㅑ":3, "ㅓ":2, "ㅕ":3,
+    "ㅗ":2, "ㅛ":3, "ㅜ":2, "ㅠ":3,
+    "ㅡ":1, "ㅣ":1
+  };
+
+  const jongStrokeMap = {
+    "":0,
+    "ㄱ":2, "ㄴ":2, "ㄷ":3, "ㄹ":5, "ㅁ":4,
+    "ㅂ":4, "ㅅ":2, "ㅇ":1, "ㅇ":1
+  };
+
+  function getNameScore(name) {
+    let total = 0;
+
+    for (let char of name) {
+      const code = char.charCodeAt(0) - 44032;
+      if (code < 0 || code > 11171) continue;
+
+      const choseong = Math.floor
