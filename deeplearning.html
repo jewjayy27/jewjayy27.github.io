@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="ko" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 뉴런 트레이너</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    @keyframes pulse-glow {
+      0%, 100% { filter: brightness(1) drop-shadow(0 0 5px currentColor); }
+      50% { filter: brightness(1.2) drop-shadow(0 0 15px currentColor); }
+    }
+    
+    @keyframes bounce-in {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    @keyframes slide-up {
+      0% { transform: translateY(20px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes celebrate {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(-10deg) scale(1.1); }
+      75% { transform: rotate(10deg) scale(1.1); }
+    }
+    
+    .neuron {
+      transition: all 0.3s ease;
+    }
+    
+    .neuron.active {
+      animation: pulse-glow 0.8s ease-in-out;
+    }
+    
+    .score-popup {
+      animation: bounce-in 0.4s ease-out;
+    }
+    
+    .level-up {
+      animation: celebrate 0.6s ease-in-out;
+    }
+    
+    .connection-line {
+      transition: all 0.4s ease;
+    }
+    
+    .connection-line.active {
+      stroke-width: 4;
+      filter: drop-shadow(0 0 8px currentColor);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="w-full h-full overflow-auto"></div>
+  <script>
+    const defaultConfig = {
+      background_color: "#FFF4E6",
+      surface_color: "#FFFFFF",
+      text_color: "#2D3748",
+      primary_action_color: "#FF6B9D",
+      secondary_action_color: "#4ECDC4",
+      font_family: "sans-serif",
+      font_size: 16,
+      game_title: "🧠 AI 뉴런 트레이너",
+      instruction_text: "패턴을 학습하는 AI가 되어보세요!",
+      start_button_text: "게임 시작",
+      leaderboard_title: "🏆 최고 기록"
+    };
+
+    let currentRecordCount = 0;
+    let allScores = [];
+    let gameState = {
+      score: 0,
+      level: 1,
+      pattern: [],
+      userPattern: [],
+      isPlaying: false,
+      neurons: []
+    };
+
+    const dataHandler = {
+      onDataChanged(data) {
+        currentRecordCount = data.length;
+        allScores = data.sort((a, b) => b.score - a.score);
+        updateLeaderboard();
+      }
+    };
+
+    async function init() {
+      const initResult = await window.dataSdk.init(dataHandler);
+      if (!initResult.isOk) {
+        console.error("Failed to initialize data SDK");
+      }
+      
+      await window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (config) => {
+          const app = document.getElementById('app');
+          const customFont = config.font_family || defaultConfig.font_family;
+          const baseFontStack = 'Arial, sans-serif';
+          const baseSize = config.font_size || defaultConfig.font_size;
+          
+          app.style.fontFamily = `${customFont}, ${baseFontStack}`;
+          app.style.backgroundColor = config.background_color || defaultConfig.background_color;
+          
+          const title = document.getElementById('game-title');
+          if (title) {
+            title.textContent = config.game_title || defaultConfig.game_title;
+            title.style.fontSize = `${baseSize * 2}px`;
+            title.style.color = config.text_color || defaultConfig.text_color;
+          }
+          
+          const instruction = document.getElementById('instruction-text');
+          if (instruction) {
+            instruction.textContent = config.instruction_text || defaultConfig.instruction_text;
+            instruction.style.fontSize = `${baseSize}px`;
+            instruction.style.color = config.text_color || defaultConfig.text_color;
+          }
+          
+          const startBtn = document.getElementById('start-btn');
+          if (startBtn) {
+            startBtn.textContent = config.start_button_text || defaultConfig.start_button_text;
+            startBtn.style.backgroundColor = config.primary_action_color || defaultConfig.primary_action_color;
+            startBtn.style.fontSize = `${baseSize * 1.25}px`;
+          }
+          
+          const leaderboardTitle = document.getElementById('leaderboard-title');
+          if (leaderboardTitle) {
+            leaderboardTitle.textContent = config.leaderboard_title || defaultConfig.leaderboard_title;
+            leaderboardTitle.style.fontSize = `${baseSize * 1.5}px`;
+            leaderboardTitle.style.color = config.text_color || defaultConfig.text_color;
+          }
+          
+          document.querySelectorAll('.score-text').forEach(el => {
+            el.style.fontSize = `${baseSize * 1.25}px`;
+            el.style.color = config.text_color || defaultConfig.text_color;
+          });
+          
+          document.querySelectorAll('.level-text').forEach(el => {
+            el.style.fontSize = `${baseSize}px`;
+            el.style.color = config.text_color || defaultConfig.text_color;
+          });
+          
+          document.querySelectorAll('.card').forEach(el => {
+            el.style.backgroundColor = config.surface_color || defaultConfig.surface_color;
+          });
+          
+          document.querySelectorAll('.neuron-btn').forEach(el => {
+            el.style.backgroundColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+          });
+          
+          document.querySelectorAll('.submit-btn').forEach(el => {
+            el.style.backgroundColor = config.primary_action_color || defaultConfig.primary_action_color;
+            el.style.fontSize = `${baseSize}px`;
+          });
+        },
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.surface_color || defaultConfig.surface_color,
+              set: (value) => {
+                config.surface_color = value;
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                config.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            },
+            {
+              get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+              set: (value) => {
+                config.secondary_action_color = value;
+                window.elementSdk.setConfig({ secondary_action_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => {
+              config.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => {
+              config.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ["game_title", config.game_title || defaultConfig.game_title],
+          ["instruction_text", config.instruction_text || defaultConfig.instruction_text],
+          ["start_button_text", config.start_button_text || defaultConfig.start_button_text],
+          ["leaderboard_title", config.leaderboard_title || defaultConfig.leaderboard_title]
+        ])
+      });
+      
+      renderApp();
+    }
+
+    function renderApp() {
+      const config = window.elementSdk.config;
+      const app = document.getElementById('app');
+      
+      app.innerHTML = `
+        <div class="min-h-full p-6">
+          <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+              <h1 id="game-title" class="text-5xl font-bold mb-3">${config.game_title || defaultConfig.game_title}</h1>
+              <p id="instruction-text" class="text-xl">${config.instruction_text || defaultConfig.instruction_text}</p>
+            </div>
+
+            <!-- Game Stats -->
+            <div class="grid grid-cols-2 gap-4 mb-6 max-w-md mx-auto">
+              <div class="card rounded-2xl p-4 text-center shadow-lg">
+                <div class="text-4xl mb-2">⭐</div>
+                <div id="score-display" class="score-text font-bold">0점</div>
+              </div>
+              <div class="card rounded-2xl p-4 text-center shadow-lg">
+                <div class="text-4xl mb-2">🎯</div>
+                <div id="level-display" class="level-text font-semibold">레벨 1</div>
+              </div>
+            </div>
+
+            <!-- Start Screen -->
+            <div id="start-screen" class="text-center mb-8">
+              <div class="card rounded-3xl p-8 max-w-xl mx-auto shadow-xl">
+                <div class="text-6xl mb-6">🤖</div>
+                <p class="text-lg mb-6">AI는 패턴을 학습해요! 뉴런들이 켜지는 순서를 기억하고 따라해보세요. 레벨이 올라갈수록 패턴이 길어져요!</p>
+                <button id="start-btn" class="submit-btn text-white font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
+                  ${config.start_button_text || defaultConfig.start_button_text}
+                </button>
+              </div>
+            </div>
+
+            <!-- Game Screen -->
+            <div id="game-screen" class="hidden">
+              <div class="card rounded-3xl p-8 max-w-2xl mx-auto shadow-xl mb-6">
+                <div class="text-center mb-6">
+                  <div class="text-2xl font-bold mb-2">🧠 신경망 네트워크</div>
+                  <p class="text-sm">패턴을 학습하는 중...</p>
+                </div>
+                
+                <!-- Neural Network Visualization -->
+                <svg id="network-svg" viewBox="0 0 400 300" class="w-full h-64 mb-6">
+                  <!-- Connections will be drawn here -->
+                </svg>
+                
+                <!-- Neuron Buttons -->
+                <div id="neurons-container" class="grid grid-cols-4 gap-4 mb-6"></div>
+                
+                <div class="text-center">
+                  <button id="submit-pattern-btn" class="submit-btn text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all hidden">
+                    답안 제출하기
+                  </button>
+                  <div id="feedback-message" class="mt-4 text-lg font-bold"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="card rounded-3xl p-6 max-w-xl mx-auto shadow-xl">
+              <h2 id="leaderboard-title" class="text-center font-bold mb-4">${config.leaderboard_title || defaultConfig.leaderboard_title}</h2>
+              <div id="leaderboard-list" class="space-y-2"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('start-btn').addEventListener('click', startGame);
+      updateLeaderboard();
+    }
+
+    function startGame() {
+      gameState.score = 0;
+      gameState.level = 1;
+      gameState.isPlaying = true;
+      
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+      
+      generateNeurons();
+      nextLevel();
+    }
+
+    function generateNeurons() {
+      const container = document.getElementById('neurons-container');
+      const config = window.elementSdk.config;
+      container.innerHTML = '';
+      
+      for (let i = 0; i < 8; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'neuron neuron-btn w-full aspect-square rounded-2xl text-3xl font-bold shadow-lg hover:shadow-xl transform hover:scale-110 transition-all';
+        btn.style.backgroundColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+        btn.style.color = '#FFFFFF';
+        btn.textContent = String.fromCodePoint(0x1F9E0 + i);
+        btn.dataset.index = i;
+        btn.addEventListener('click', () => handleNeuronClick(i));
+        container.appendChild(btn);
+      }
+      
+      drawNeuralNetwork();
+    }
+
+    function drawNeuralNetwork() {
+      const svg = document.getElementById('network-svg');
+      const config = window.elementSdk.config;
+      svg.innerHTML = '';
+      
+      const inputLayer = [{x: 50, y: 150}];
+      const hiddenLayer = [{x: 200, y: 100}, {x: 200, y: 150}, {x: 200, y: 200}];
+      const outputLayer = [{x: 350, y: 150}];
+      
+      function drawConnections(from, to) {
+        from.forEach(f => {
+          to.forEach(t => {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', f.x);
+            line.setAttribute('y1', f.y);
+            line.setAttribute('x2', t.x);
+            line.setAttribute('y2', t.y);
+            line.setAttribute('stroke', config.secondary_action_color || defaultConfig.secondary_action_color);
+            line.setAttribute('stroke-width', '2');
+            line.setAttribute('opacity', '0.3');
+            line.classList.add('connection-line');
+            svg.appendChild(line);
+          });
+        });
+      }
+      
+      drawConnections(inputLayer, hiddenLayer);
+      drawConnections(hiddenLayer, outputLayer);
+      
+      function drawNeurons(layer) {
+        layer.forEach(n => {
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('cx', n.x);
+          circle.setAttribute('cy', n.y);
+          circle.setAttribute('r', '15');
+          circle.setAttribute('fill', config.primary_action_color || defaultConfig.primary_action_color);
+          circle.setAttribute('stroke', '#FFFFFF');
+          circle.setAttribute('stroke-width', '3');
+          svg.appendChild(circle);
+        });
+      }
+      
+      drawNeurons(inputLayer);
+      drawNeurons(hiddenLayer);
+      drawNeurons(outputLayer);
+    }
+
+    function nextLevel() {
+      gameState.pattern = [];
+      gameState.userPattern = [];
+      
+      const patternLength = Math.min(2 + gameState.level, 8);
+      for (let i = 0; i < patternLength; i++) {
+        gameState.pattern.push(Math.floor(Math.random() * 8));
+      }
+      
+      document.getElementById('level-display').textContent = `레벨 ${gameState.level}`;
+      document.getElementById('feedback-message').textContent = '';
+      document.getElementById('submit-pattern-btn').classList.add('hidden');
+      
+      showPattern();
+    }
+
+    async function showPattern() {
+      const config = window.elementSdk.config;
+      const neurons = document.querySelectorAll('.neuron');
+      const svg = document.getElementById('network-svg');
+      const lines = svg.querySelectorAll('.connection-line');
+      
+      document.getElementById('feedback-message').textContent = '👀 패턴을 기억하세요!';
+      
+      neurons.forEach(n => n.disabled = true);
+      
+      for (let i = 0; i < gameState.pattern.length; i++) {
+        const index = gameState.pattern[i];
+        const neuron = neurons[index];
+        
+        neuron.classList.add('active');
+        neuron.style.backgroundColor = config.primary_action_color || defaultConfig.primary_action_color;
+        
+        lines.forEach(line => line.classList.add('active'));
+        
+        await new Promise(resolve => setTimeout(resolve, 600));
+        
+        neuron.classList.remove('active');
+        neuron.style.backgroundColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+        lines.forEach(line => line.classList.remove('active'));
+        
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      neurons.forEach(n => n.disabled = false);
+      document.getElementById('feedback-message').textContent = '🎮 이제 당신 차례예요!';
+    }
+
+    function handleNeuronClick(index) {
+      if (!gameState.isPlaying) return;
+      
+      const config = window.elementSdk.config;
+      const neuron = document.querySelector(`[data-index="${index}"]`);
+      neuron.classList.add('active');
+      
+      setTimeout(() => {
+        neuron.classList.remove('active');
+      }, 300);
+      
+      gameState.userPattern.push(index);
+      
+      if (gameState.userPattern.length === gameState.pattern.length) {
+        document.getElementById('submit-pattern-btn').classList.remove('hidden');
+        document.getElementById('submit-pattern-btn').addEventListener('click', checkPattern, { once: true });
+      }
+    }
+
+    function checkPattern() {
+      const isCorrect = gameState.pattern.every((val, idx) => val === gameState.userPattern[idx]);
+      const feedback = document.getElementById('feedback-message');
+      
+      if (isCorrect) {
+        const points = gameState.level * 100;
+        gameState.score += points;
+        document.getElementById('score-display').textContent = `${gameState.score}점`;
+        document.getElementById('score-display').classList.add('score-popup');
+        
+        feedback.textContent = `🎉 정답이에요! +${points}점`;
+        feedback.style.color = '#10B981';
+        
+        setTimeout(() => {
+          document.getElementById('score-display').classList.remove('score-popup');
+          gameState.level++;
+          document.getElementById('level-display').classList.add('level-up');
+          setTimeout(() => {
+            document.getElementById('level-display').classList.remove('level-up');
+          }, 600);
+          nextLevel();
+        }, 2000);
+      } else {
+        feedback.textContent = '❌ 다시 도전해보세요!';
+        feedback.style.color = '#EF4444';
+        
+        setTimeout(() => {
+          endGame();
+        }, 2000);
+      }
+    }
+
+    async function endGame() {
+      gameState.isPlaying = false;
+      
+      const feedback = document.getElementById('feedback-message');
+      feedback.textContent = `게임 종료! 최종 점수: ${gameState.score}점`;
+      feedback.style.color = window.elementSdk.config.text_color || defaultConfig.text_color;
+      
+      if (currentRecordCount >= 999) {
+        const message = document.createElement('div');
+        message.className = 'mt-4 p-4 bg-yellow-100 rounded-lg text-center';
+        message.textContent = '⚠️ 최대 기록 수(999개)에 도달했습니다. 새 기록을 저장할 수 없습니다.';
+        feedback.parentElement.appendChild(message);
+      } else {
+        const playerName = `플레이어 ${currentRecordCount + 1}`;
+        const newScore = {
+          id: `score_${Date.now()}`,
+          player_name: playerName,
+          score: gameState.score,
+          level: gameState.level - 1,
+          timestamp: new Date().toISOString()
+        };
+        
+        feedback.textContent = '점수 저장 중...';
+        const result = await window.dataSdk.create(newScore);
+        
+        if (result.isOk) {
+          feedback.textContent = `게임 종료! 최종 점수: ${gameState.score}점 (저장됨)`;
+        } else {
+          feedback.textContent = `게임 종료! 최종 점수: ${gameState.score}점 (저장 실패)`;
+        }
+      }
+      
+      setTimeout(() => {
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('start-screen').classList.remove('hidden');
+      }, 3000);
+    }
+
+    function updateLeaderboard() {
+      const list = document.getElementById('leaderboard-list');
+      if (!list) return;
+      
+      const config = window.elementSdk.config;
+      const baseSize = config.font_size || defaultConfig.font_size;
+      
+      if (allScores.length === 0) {
+        list.innerHTML = `<div class="text-center py-4" style="color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseSize * 0.875}px;">아직 기록이 없어요. 첫 번째 도전자가 되어보세요!</div>`;
+        return;
+      }
+      
+      list.innerHTML = allScores.slice(0, 10).map((score, idx) => `
+        <div class="flex items-center justify-between p-3 rounded-xl" style="background-color: ${config.surface_color || defaultConfig.surface_color}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🎖️'}</span>
+            <div>
+              <div style="font-weight: 600; color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseSize}px;">${score.player_name}</div>
+              <div style="color: ${config.text_color || defaultConfig.text_color}; opacity: 0.7; font-size: ${baseSize * 0.75}px;">레벨 ${score.level}</div>
+            </div>
+          </div>
+          <div style="font-weight: bold; color: ${config.primary_action_color || defaultConfig.primary_action_color}; font-size: ${baseSize * 1.125}px;">${score.score}점</div>
+        </div>
+      `).join('');
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9abccb9625b9d1db',t:'MTc2NTM3MDI2NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
