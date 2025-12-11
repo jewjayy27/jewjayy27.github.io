@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나만 아니면 돼 - 커피 사다리 게임</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        :root {
+            --primary-color: #fb7185;
+            /* 밝은 핑크 */
+            --danger-color: #f97316;
+            /* 주황 */
+            --success-color: #22c55e;
+            /* 초록 */
+            --bg-gradient-start: #fee2e2;
+            --bg-gradient-end: #e0f2fe;
+            --card-bg: #ffffff;
+            --text-main: #111827;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--text-main);
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #4b5563;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 18px 35px rgba(15, 23, 42, 0.12);
+            width: 100%;
+            max-width: 900px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 22px 40px rgba(15, 23, 42, 0.18);
+        }
+
+        /* Setup Section */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.15s, box-shadow 0.15s;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.25);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-weight: normal;
+            padding: 0.3rem 0.7rem;
+            border-radius: 999px;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #fb7185, #f97316);
+            color: white;
+            padding: 0.9rem 1.5rem;
+            border: none;
+            border-radius: 999px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+            box-shadow: 0 12px 25px rgba(248, 113, 113, 0.35);
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(248, 113, 113, 0.45);
+        }
+
+        .btn.secondary {
+            background: #e5e7eb;
+            color: #374151;
+            box-shadow: none;
+        }
+
+        .btn.secondary:hover {
+            filter: brightness(0.98);
+            box-shadow: 0 4px 10px rgba(148, 163, 184, 0.45);
+        }
+
+        /* Game Section */
+        #gameSection {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .ladder-container {
+            position: relative;
+            margin: 20px 0;
+            padding: 20px 10px 20px 10px;
+            background: #f9fafb;
+            border-radius: 1rem;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* 가운데 정렬 */
+            gap: 12px;
+        }
+
+        .inputs-row {
+            display: flex;
+            justify-content: space-between;
+            /* 각 칸 간격 균등 */
+            gap: 8px;
+            margin-bottom: 0;
+            width: auto;
+            /* 내용만큼 너비 */
+        }
+
+        .player-input-group,
+        .result-input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .player-input-group input,
+        .result-input-group input {
+            width: 80px;
+            /* columnWidth와 맞춤 */
+            padding: 6px;
+            text-align: center;
+            font-size: 0.9rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            background-color: #ffffff;
+        }
+
+        .result-input-group input {
+            background-color: #fef3c7;
+            font-weight: 700;
+            color: var(--danger-color);
+            font-size: 0.85rem;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.45);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.4);
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 1rem;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .winner {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .loser {
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .unit-info {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 10px;
+            border-radius: 999px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .footer-note {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="global-nav">
+        <a href="../index.html">Home</a>
+        <a href="deep learning.html">Deep Learning</a>
+        <a href="seatingarrangement.html">Seating</a>
+        <a href="ladder.html">Ladder</a>
+        <a href="AorB.html">A or B</a>
+        <a href="quickmemory.html">Memory</a>
+    </nav>
+
+    <h1>🪜 나만 아니면 돼 - 커피 사다리</h1>
+    <p class="subtitle">밝은 운명? 진한 커피값? <br>운에 맡겨보는 커피값 정산 게임 ☕</p>
+
+    <!-- Setup Section -->
+    <div id="setupCard" class="card">
+        <div class="form-group">
+            <label>참가 인원 (명)</label>
+            <input type="number" id="playerCount" value="4" min="2" max="20">
+        </div>
+
+        <div class="form-group">
+            <label>총 금액 (원)</label>
+            <input type="number" id="totalAmount" value="20000" step="100">
+            <p style="font-size: 0.8rem; color: #6b7280; margin-top: 5px;">
+                * 금액에 따라 1000원, 500원, 100원 단위로 자동 조정됩니다.
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label>금액 분배 방식</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="moneyMode" value="random" checked onchange="toggleDifficulty(true)"> 랜덤 분배
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="moneyMode" value="manual" onchange="toggleDifficulty(false)"> 직접 입력
+                </label>
+            </div>
+        </div>
+
+        <div id="difficultySection" class="form-group">
+            <label>복불복 강도</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="difficulty" value="mild" checked> 약함 (비슷하게 N빵)
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="difficulty" value="severe"> 강함 (1명 공짜 + 몰아주기)
+                </label>
+            </div>
+        </div>
+
+        <button class="btn" onclick="initGame()">✨ 사다리 세팅하기</button>
+        <p class="footer-note">이름은 다음 화면에서 바꿀 수 있어요.</p>
+    </div>
+
+    <!-- Game Section -->
+    <div id="gameSection" class="card">
+        <div id="unitInfoDisplay" class="unit-info"></div>
+
+        <div class="ladder-container">
+            <!-- Names Top -->
+            <div id="topInputs" class="inputs-row"></div>
+
+            <!-- Canvas -->
+            <canvas id="ladderCanvas"></canvas>
+
+            <!-- Results Bottom -->
+            <div id="bottomInputs" class="inputs-row"></div>
+        </div>
+
+        <div style="width: 100%; max-width: 420px; display: flex; gap: 10px; margin: 0 auto;">
+            <button class="btn" onclick="startLadder()">🎲 시작 (결과 확인)</button>
+            <button class="btn secondary" onclick="resetToSetup()">↩ 다시 하기</button>
+        </div>
+        <p class="footer-note">사다리를 클릭하는 게 아니라, <b>버튼</b>만 눌러도 자동으로 내려가요.</p>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="modal-overlay">
+        <div class="modal">
+            <h2 style="text-align: center; margin-top: 0;">🎉 최종 결과 🎉</h2>
+            <div id="resultList"></div>
+            <button class="btn" style="margin-top: 20px;" onclick="closeModal()">닫기</button>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let ctx;
+        let canvas;
+        let results = [];
+        let bridges = []; // { col, y, step }
+        let numPlayers = 0;
+        let columnWidth = 80; // 각 세로줄 간격 및 입력칸 너비 기준
+        let startY = 20;
+        let endY = 380; // 사다리 높이
+        let isAnimating = false;
+
+        // 이름 저장용
+        let storedNames = [];
+        let lastPlayerCount = 0;
+
+        window.onload = function () {
+            canvas = document.getElementById('ladderCanvas');
+            ctx = canvas.getContext('2d');
+        };
+
+        function toggleDifficulty(show) {
+            const div = document.getElementById('difficultySection');
+            if (show) div.classList.remove('hidden');
+            else div.classList.add('hidden');
+        }
+
+        // 게임 초기화 및 화면 전환
+        function initGame() {
+            numPlayers = parseInt(document.getElementById('playerCount').value);
+            const totalAmount = parseInt(document.getElementById('totalAmount').value);
+
+            if (isNaN(numPlayers) || numPlayers < 2) {
+                alert("최소 2명 이상이어야 합니다.");
+                return;
+            }
+            if (isNaN(totalAmount) || totalAmount <= 0) {
+                alert("총 금액을 정확히 입력해주세요.");
+                return;
+            }
+
+            const unit = calculateUnit(totalAmount);
+            document.getElementById('unitInfoDisplay').innerText =
+                `총 ${totalAmount.toLocaleString()}원 / 최소 단위: ${unit}원`;
+
+            // UI 전환
+            document.getElementById('setupCard').style.display = 'none';
+            document.getElementById('gameSection').style.display = 'flex';
+
+            // 입력창 구성
+            prepareInputs(numPlayers, totalAmount, unit);
+
+            // ★ 캔버스 너비 = 세로줄 개수 × columnWidth (입력칸과 정확히 일치)
+            const requiredWidth = numPlayers * columnWidth;
+            canvas.width = requiredWidth;
+            canvas.height = endY + 40;
+
+            // 초기 사다리(세로줄만)
+            bridges = [];
+            drawLadder();
+        }
+
+        // 단위 계산
+        function calculateUnit(amount) {
+            if (amount % 1000 === 0) return 1000;
+            if (amount % 500 === 0) return 500;
+            return 100;
+        }
+
+        // 입력창 및 결과 생성
+        function prepareInputs(count, total, unit) {
+            const topDiv = document.getElementById('topInputs');
+            const bottomDiv = document.getElementById('bottomInputs');
+
+            // 기존 이름 임시 저장 (사람 수 같을 때 유지)
+            const currentNameInputs = topDiv.querySelectorAll('input');
+            let tempNames = [];
+            if (currentNameInputs.length === count) {
+                currentNameInputs.forEach(input => tempNames.push(input.value));
+            }
+
+            topDiv.innerHTML = '';
+            bottomDiv.innerHTML = '';
+
+            // 상단 이름 입력칸
+            for (let i = 0; i < count; i++) {
+                const group = document.createElement('div');
+                group.className = 'player-input-group';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+
+                if (tempNames.length > 0) {
+                    input.value = tempNames[i];
+                } else if (storedNames.length > i && lastPlayerCount === count) {
+                    input.value = storedNames[i];
+                } else {
+                    input.value = `참가자${i + 1}`;
+                }
+
+                input.id = `name-${i}`;
+                group.appendChild(input);
+                topDiv.appendChild(group);
+            }
+
+            // 하단 결과 금액
+            const mode = document.querySelector('input[name="moneyMode"]:checked').value;
+            let moneyDistribution = [];
+
+            if (mode === 'random') {
+                const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
+                moneyDistribution = distributeMoney(count, total, difficulty, unit);
+            } else {
+                for (let i = 0; i < count; i++) moneyDistribution.push(0);
+            }
+
+            if (mode === 'random') {
+                moneyDistribution.sort(() => Math.random() - 0.5);
+            }
+
+            for (let i = 0; i < count; i++) {
+                const group = document.createElement('div');
+                group.className = 'result-input-group';
+
+                const input = document.createElement('input');
+                input.type = (mode === 'manual') ? 'number' : 'text';
+                input.id = `result-${i}`;
+
+                if (mode === 'random') {
+                    input.value = moneyDistribution[i].toLocaleString();
+                    input.readOnly = true;
+                } else {
+                    input.placeholder = "금액";
+                }
+
+                group.appendChild(input);
+                bottomDiv.appendChild(group);
+            }
+
+            lastPlayerCount = count;
+        }
+
+        // 금액 분배 로직
+        function distributeMoney(count, total, difficulty, unit) {
+            const totalPoints = total / unit;
+            let points = new Array(count).fill(0);
+
+            if (difficulty === 'severe') {
+                const payers = count - 1;
+                let randoms = [];
+                for (let i = 0; i < payers; i++) randoms.push(Math.random());
+                const sumRandom = randoms.reduce((a, b) => a + b, 0);
+
+                let currentSum = 0;
+                let distributedPoints = randoms.map(r => {
+                    let p = Math.floor((r / sumRandom) * totalPoints);
+                    currentSum += p;
+                    return p;
+                });
+
+                let remainder = totalPoints - currentSum;
+                distributedPoints[payers - 1] += remainder;
+
+                points = [0, ...distributedPoints];
+            } else {
+                const basePoint = Math.floor(totalPoints / count);
+                points.fill(basePoint);
+
+                let currentSum = basePoint * count;
+                let remainder = totalPoints - currentSum;
+
+                for (let i = 0; i < remainder; i++) {
+                    points[i]++;
+                }
+
+                const jitterCount = Math.floor(count / 2);
+                for (let k = 0; k < jitterCount; k++) {
+                    let giver = Math.floor(Math.random() * count);
+                    let receiver = Math.floor(Math.random() * count);
+
+                    if (giver !== receiver && points[giver] > 0) {
+                        points[giver]--;
+                        points[receiver]++;
+                    }
+                }
+            }
+
+            return points.map(p => p * unit);
+        }
+
+        // 가로줄 생성
+        function generateLadder() {
+            bridges = [];
+            const steps = 15;
+            const stepHeight = (endY - startY) / steps;
+
+            for (let i = 0; i < numPlayers - 1; i++) {
+                for (let s = 1; s < steps - 1; s++) {
+                    if (Math.random() > 0.6) {
+                        const hasLeftBridge = bridges.some(b => b.col === i - 1 && b.step === s);
+                        const hasTopBridge = bridges.some(b => b.col === i && b.step === s - 1);
+
+                        if (!hasLeftBridge && !hasTopBridge) {
+                            bridges.push({
+                                col: i,
+                                step: s,
+                                y: startY + (s * stepHeight)
+                            });
+                            s++;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 사다리 그리기 (세로줄 + 가로줄)
+        function drawLadder() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const halfCol = columnWidth / 2;
+
+            // 연한 세로줄
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.beginPath();
+            for (let i = 0; i < numPlayers; i++) {
+                const x = halfCol + (i * columnWidth);
+                ctx.moveTo(x, startY);
+                ctx.lineTo(x, endY);
+            }
+            ctx.stroke();
+
+            // 가로줄 (배경)
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            for (const bridge of bridges) {
+                const x1 = halfCol + (bridge.col * columnWidth);
+                const x2 = x1 + columnWidth;
+                ctx.moveTo(x1, bridge.y);
+                ctx.lineTo(x2, bridge.y);
+            }
+            ctx.stroke();
+
+            // 진한 테두리 느낌의 세로줄 덧그리기
+            ctx.strokeStyle = '#9ca3af';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < numPlayers; i++) {
+                const x = halfCol + (i * columnWidth);
+                ctx.moveTo(x, startY);
+                ctx.lineTo(x, endY);
+            }
+            ctx.stroke();
+        }
+
+        // 애니메이션 시작
+        async function startLadder() {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            // 이름 저장
+            storedNames = [];
+            for (let i = 0; i < numPlayers; i++) {
+                storedNames.push(document.getElementById(`name-${i}`).value);
+            }
+
+            // 결과값 읽기
+            const moneyResults = [];
+            const resultInputs = document.querySelectorAll('.result-input-group input');
+            for (let input of resultInputs) {
+                if (!input.value) {
+                    alert("결과 값을 모두 입력해주세요!");
+                    isAnimating = false;
+                    return;
+                }
+                moneyResults.push(input.value);
+            }
+
+            // 가로줄 만들고 다시 그림
+            generateLadder();
+            drawLadder();
+
+            const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
+            results = [];
+
+            let finishedCount = 0;
+
+            for (let i = 0; i < numPlayers; i++) {
+                const color = colors[i % colors.length];
+                animatePath(i, color, (finalIndex) => {
+                    results.push({
+                        name: storedNames[i],
+                        result: moneyResults[finalIndex],
+                        originalIndex: i
+                    });
+                    finishedCount++;
+                    if (finishedCount === numPlayers) {
+                        isAnimating = false;
+                        setTimeout(showResults, 400);
+                    }
+                });
+                await new Promise(r => setTimeout(r, 200));
+            }
+        }
+
+        // 한 사람의 이동 경로 애니메이션
+        function animatePath(startIndex, color, callback) {
+            let currentCol = startIndex;
+            let currentX = (columnWidth / 2) + (currentCol * columnWidth);
+            let currentY = startY;
+            const speed = 4;
+
+            function step() {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 4;
+
+                ctx.beginPath();
+                ctx.moveTo(currentX, currentY);
+
+                let nextY = currentY + speed;
+                let rightBridge = bridges.find(b => b.col === currentCol && Math.abs(b.y - currentY) < speed);
+                let leftBridge = bridges.find(b => b.col === currentCol - 1 && Math.abs(b.y - currentY) < speed);
+
+                if (rightBridge) {
+                    ctx.lineTo(currentX, rightBridge.y);
+                    ctx.stroke();
+                    currentY = rightBridge.y;
+
+                    ctx.beginPath();
+                    ctx.moveTo(currentX, currentY);
+                    currentX += columnWidth;
+                    ctx.lineTo(currentX, currentY);
+                    ctx.stroke();
+
+                    currentCol++;
+                    currentY += speed;
+                    requestAnimationFrame(step);
+                    return;
+                } else if (leftBridge) {
+                    ctx.lineTo(currentX, leftBridge.y);
+                    ctx.stroke();
+                    currentY = leftBridge.y;
+
+                    ctx.beginPath();
+                    ctx.moveTo(currentX, currentY);
+                    currentX -= columnWidth;
+                    ctx.lineTo(currentX, currentY);
+                    ctx.stroke();
+
+                    currentCol--;
+                    currentY += speed;
+                    requestAnimationFrame(step);
+                    return;
+                }
+
+                if (nextY >= endY) {
+                    ctx.lineTo(currentX, endY);
+                    ctx.stroke();
+                    callback(currentCol);
+                } else {
+                    ctx.lineTo(currentX, nextY);
+                    ctx.stroke();
+                    currentY = nextY;
+                    requestAnimationFrame(step);
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        function showResults() {
+            const list = document.getElementById('resultList');
+            list.innerHTML = '';
+
+            results.sort((a, b) => a.originalIndex - b.originalIndex);
+
+            const totalAmount = parseInt(document.getElementById('totalAmount').value);
+
+            results.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+
+                const val = parseInt(item.result.replace(/[^0-9]/g, '')) || 0;
+                let styleClass = '';
+
+                if (val === 0) styleClass = 'winner';
+                else if (val >= totalAmount / 2) styleClass = 'loser';
+
+                div.innerHTML = `
+                    <span>${item.name}</span>
+                    <span class="${styleClass}">${item.result}원</span>
+                `;
+                list.appendChild(div);
+            });
+
+            document.getElementById('resultModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('resultModal').style.display = 'none';
+        }
+
+        // 다시하기
+        function resetToSetup() {
+            isAnimating = false;
+
+            const nameInputs = document.querySelectorAll('.player-input-group input');
+            storedNames = [];
+            nameInputs.forEach(input => storedNames.push(input.value));
+
+            closeModal();
+
+            document.getElementById('gameSection').style.display = 'none';
+            document.getElementById('setupCard').style.display = 'block';
+
+            if (ctx && canvas) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,207 @@
+:root {
+  --bg-1: #fdf2f7;
+  --bg-2: #e0f4ff;
+  --bg-3: #ffe9e0;
+  --glass-bg: rgba(255, 255, 255, 0.18);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --accent-coral: #ff8a8a;
+  --accent-sky: #7dd3fc;
+  --accent-purple: #c4b5fd;
+  --text-main: #0f172a;
+  --text-sub: #6b7280;
+  --radius-xl: 26px;
+  --radius-pill: 999px;
+  --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard",
+    "Noto Sans KR", sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 0% 0%, var(--bg-1) 0, #ffffff 40%),
+    radial-gradient(circle at 100% 0%, var(--bg-2) 0, #ffffff 40%),
+    radial-gradient(circle at 0% 100%, var(--bg-3) 0, #ffffff 50%);
+  color: var(--text-main);
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  padding: 24px;
+}
+
+/* 리퀴드 글래스 배경 */
+.blob {
+  position: fixed;
+  width: 370px;
+  height: 370px;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.8;
+  z-index: -2;
+  mix-blend-mode: screen;
+  animation: floatBlob 20s ease-in-out infinite alternate;
+}
+.blob.coral {
+  top: -80px;
+  left: -40px;
+  background: radial-gradient(circle at 30% 30%, #ffc6c6, var(--accent-coral));
+}
+.blob.sky {
+  bottom: -120px;
+  right: -40px;
+  background: radial-gradient(circle at 30% 30%, #d8f3ff, var(--accent-sky));
+  animation-delay: 4s;
+}
+.blob.purple {
+  top: 50%;
+  left: 60%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle at 30% 30%, #ede9fe, var(--accent-purple));
+  opacity: 0.7;
+  animation-delay: 8s;
+}
+
+@keyframes floatBlob {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(25px, -25px, 0) scale(1.08); }
+  100% { transform: translate3d(-10px, 20px, 0) scale(0.98); }
+}
+
+/* 중앙 글래스 카드 */
+.shell {
+  width: min(640px, 100%);
+  background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.7),
+      rgba(255, 255, 255, 0.2)
+    );
+  border-radius: var(--radius-xl);
+  padding: 32px 30px 40px;
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  position: relative;
+}
+
+.shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 0 0,
+    rgba(255, 255, 255, 0.6),
+    transparent 55%
+  );
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+h1 {
+  font-size: clamp(2.2rem, 4vw, 3rem);
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: var(--text-sub);
+  margin-bottom: 26px;
+  line-height: 1.6;
+}
+
+/* Navigation Styles */
+.nav-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.nav-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(18px);
+  text-decoration: none;
+  color: var(--text-main);
+  transition: 0.2s ease-out;
+  overflow: hidden;
+}
+
+.nav-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.22);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.nav-text-main {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.nav-pill {
+  min-width: 42px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: linear-gradient(
+    135deg,
+    var(--accent-coral),
+    var(--accent-sky)
+  );
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 24px rgba(255, 128, 128, 0.45);
+}
+
+.footer {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+/* Global Navigation Bar (Top) */
+.global-nav {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.global-nav a {
+  text-decoration: none;
+  color: var(--text-main);
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.global-nav a:hover {
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.global-nav a.active {
+  background: var(--accent-sky);
+  color: white;
+}

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 트레이너 게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(to bottom right, #fce7f3, #e9d5ff, #dbeafe);
+        }
+    </style>
+</head>
+
+<body class="gradient-bg min-h-screen p-8">
+    <nav class="global-nav">
+        <a href="../index.html">Home</a>
+        <a href="deep learning.html">Deep Learning</a>
+        <a href="seatingarrangement.html">Seating</a>
+        <a href="ladder.html">Ladder</a>
+        <a href="AorB.html">A or B</a>
+        <a href="quickmemory.html">Memory</a>
+    </nav>
+    <div class="max-w-4xl mx-auto">
+        <!-- 헤더 -->
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center gap-3 mb-4">
+                <svg class="w-12 h-12 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <h1
+                    class="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    AI 트레이너 게임
+                </h1>
+            </div>
+            <p class="text-xl text-gray-700">딥러닝의 원리를 배워보아요!</p>
+        </div>
+
+        <!-- 점수판 -->
+        <div class="bg-white rounded-3xl shadow-2xl p-6 mb-6">
+            <div class="flex justify-around items-center">
+                <div class="text-center">
+                    <svg class="w-8 h-8 text-yellow-500 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                    </svg>
+                    <div class="text-2xl font-bold text-purple-600" id="totalScore">0</div>
+                    <div class="text-sm text-gray-600">총점</div>
+                </div>
+                <div class="text-center">
+                    <svg class="w-8 h-8 text-blue-500 mx-auto mb-2" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke-width="2" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2" />
+                    </svg>
+                    <div class="text-2xl font-bold text-blue-600" id="currentLevel">1</div>
+                    <div class="text-sm text-gray-600">현재 레벨</div>
+                </div>
+                <div class="text-center">
+                    <svg class="w-8 h-8 text-pink-500 mx-auto mb-2" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                    <div class="text-2xl font-bold text-pink-600" id="badgeCount">0</div>
+                    <div class="text-sm text-gray-600">배지</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 게임 영역 -->
+        <div class="bg-white rounded-3xl shadow-2xl p-8" id="gameArea"></div>
+
+        <!-- 배지 컬렉션 -->
+        <div class="mt-6 bg-white rounded-3xl shadow-xl p-6 hidden" id="badgeCollection">
+            <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <svg class="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                내 배지 컬렉션
+            </h3>
+            <div class="flex gap-3 flex-wrap" id="badgeList"></div>
+        </div>
+    </div>
+
+    <script>
+        const patterns = {
+            1: {
+                name: "색깔 인식",
+                description: "AI에게 빨간색과 파란색을 구별하는 법을 가르쳐주세요!",
+                options: [
+                    { item: "🍎", answer: "빨강" },
+                    { item: "🍓", answer: "빨강" },
+                    { item: "🌊", answer: "파랑" },
+                    { item: "🦋", answer: "파랑" },
+                    { item: "🌹", answer: "빨강" },
+                    { item: "🐳", answer: "파랑" }
+                ]
+            },
+            2: {
+                name: "크기 비교",
+                description: "AI에게 큰 것과 작은 것을 구별하는 법을 가르쳐주세요!",
+                options: [
+                    { item: "🐘", answer: "크다" },
+                    { item: "🐜", answer: "작다" },
+                    { item: "🦒", answer: "크다" },
+                    { item: "🐝", answer: "작다" },
+                    { item: "🐋", answer: "크다" },
+                    { item: "🐛", answer: "작다" }
+                ]
+            },
+            3: {
+                name: "홀짝 구분",
+                description: "AI에게 홀수와 짝수를 구별하는 법을 가르쳐주세요!",
+                options: [
+                    { item: "2️⃣", answer: "짝수" },
+                    { item: "3️⃣", answer: "홀수" },
+                    { item: "4️⃣", answer: "짝수" },
+                    { item: "5️⃣", answer: "홀수" },
+                    { item: "6️⃣", answer: "짝수" },
+                    { item: "7️⃣", answer: "홀수" }
+                ]
+            }
+        };
+
+        let gameState = {
+            state: 'menu',
+            level: 1,
+            score: 0,
+            totalScore: 0,
+            trainingData: [],
+            currentQuestion: null,
+            accuracy: 0,
+            badges: [],
+            feedback: ''
+        };
+
+        function updateScoreBoard() {
+            document.getElementById('totalScore').textContent = gameState.totalScore;
+            document.getElementById('currentLevel').textContent = gameState.level;
+            document.getElementById('badgeCount').textContent = gameState.badges.length;
+
+            if (gameState.badges.length > 0 && gameState.state !== 'complete') {
+                const badgeCollection = document.getElementById('badgeCollection');
+                badgeCollection.classList.remove('hidden');
+                const badgeList = document.getElementById('badgeList');
+                badgeList.innerHTML = gameState.badges.map(badge => `
+                    <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl px-4 py-2">
+                        <svg class="w-5 h-5 text-yellow-500 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                        </svg>
+                        <span class="font-bold text-gray-700">${badge}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function startGame() {
+            gameState.state = 'playing';
+            gameState.score = 0;
+            gameState.level = 1;
+            startLevel();
+        }
+
+        function startLevel() {
+            const pattern = patterns[gameState.level];
+            const shuffled = [...pattern.options].sort(() => Math.random() - 0.5);
+            gameState.trainingData = shuffled.slice(0, 3);
+            gameState.currentQuestion = shuffled[3];
+            gameState.accuracy = 0;
+            gameState.feedback = '';
+            render();
+        }
+
+        function trainAI(data, userAnswer) {
+            const isCorrect = data.answer === userAnswer;
+
+            if (isCorrect) {
+                gameState.accuracy = Math.min(100, gameState.accuracy + 33.3);
+                gameState.feedback = '✅ 정확해요! AI가 학습했어요!';
+
+                if (gameState.accuracy >= 99) {
+                    setTimeout(() => {
+                        gameState.state = 'result';
+                        render();
+                    }, 1500);
+                }
+            } else {
+                gameState.feedback = '❌ 다시 생각해보세요!';
+            }
+
+            render();
+            setTimeout(() => {
+                gameState.feedback = '';
+                render();
+            }, 2000);
+        }
+
+        function answerTest(answer) {
+            const isCorrect = gameState.currentQuestion.answer === answer;
+            const points = isCorrect ? 100 * gameState.level : 0;
+
+            gameState.score += points;
+            gameState.totalScore += points;
+
+            if (isCorrect) {
+                gameState.feedback = `🎉 정답! +${points}점`;
+
+                if (gameState.level === 1 && !gameState.badges.includes('색깔마스터')) {
+                    gameState.badges.push('색깔마스터');
+                } else if (gameState.level === 2 && !gameState.badges.includes('크기박사')) {
+                    gameState.badges.push('크기박사');
+                } else if (gameState.level === 3 && !gameState.badges.includes('숫자천재')) {
+                    gameState.badges.push('숫자천재');
+                }
+
+                render();
+                updateScoreBoard();
+
+                setTimeout(() => {
+                    if (gameState.level < 3) {
+                        gameState.level++;
+                        gameState.state = 'playing';
+                        startLevel();
+                    } else {
+                        gameState.state = 'complete';
+                        render();
+                    }
+                }, 2000);
+            } else {
+                gameState.feedback = '😢 틀렸어요! 다시 도전해보세요!';
+                render();
+                setTimeout(() => {
+                    gameState.state = 'playing';
+                    startLevel();
+                }, 2000);
+            }
+        }
+
+        function render() {
+            const gameArea = document.getElementById('gameArea');
+            updateScoreBoard();
+
+            if (gameState.state === 'menu') {
+                gameArea.innerHTML = `
+                    <div class="text-center space-y-6">
+                        <div class="text-6xl mb-4">🤖</div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">딥러닝이 뭐예요?</h2>
+                        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 mb-6">
+                            <p class="text-lg text-gray-700 leading-relaxed">
+                                딥러닝은 컴퓨터가 <span class="font-bold text-purple-600">예시를 보고 배우는</span> 기술이에요!
+                                <br>
+                                사람처럼 여러 번 연습하면서 점점 더 <span class="font-bold text-pink-600">똑똑해져요</span> 🧠
+                                <br><br>
+                                이 게임에서는 AI에게 패턴을 가르쳐주고,
+                                <br>
+                                AI가 새로운 문제를 풀 수 있는지 테스트해볼 거예요!
+                            </p>
+                        </div>
+                        <button
+                            onclick="startGame()"
+                            class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-2xl font-bold px-12 py-4 rounded-full hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all shadow-lg">
+                            게임 시작하기! 🚀
+                        </button>
+                    </div>
+                `;
+            } else if (gameState.state === 'playing') {
+                const pattern = patterns[gameState.level];
+                const answers = [...new Set(pattern.options.map(o => o.answer))];
+
+                gameArea.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="text-center">
+                            <div class="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded-full text-lg font-bold mb-4">
+                                레벨 ${gameState.level}: ${pattern.name}
+                            </div>
+                            <p class="text-gray-700 text-lg">${pattern.description}</p>
+                        </div>
+
+                        <div class="bg-gray-200 rounded-full h-8 overflow-hidden">
+                            <div class="bg-gradient-to-r from-green-400 to-blue-500 h-full transition-all duration-500 flex items-center justify-center text-white font-bold"
+                                style="width: ${gameState.accuracy}%">
+                                ${gameState.accuracy > 10 ? Math.round(gameState.accuracy) + '%' : ''}
+                            </div>
+                        </div>
+                        <div class="text-center text-sm text-gray-600">
+                            AI 학습 정확도 (100%가 되면 테스트!)
+                        </div>
+
+                        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                AI에게 가르쳐주세요!
+                            </h3>
+                            <div class="space-y-3">
+                                ${gameState.trainingData.map((data, idx) => `
+                                    <div class="bg-white rounded-xl p-4 shadow-md">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-5xl">${data.item}</div>
+                                            <div class="flex gap-3">
+                                                ${answers.map(ans => `
+                                                    <button
+                                                        onclick="trainAI(${JSON.stringify(data).replace(/"/g, '&quot;')}, '${ans}')"
+                                                        class="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-6 py-3 rounded-xl font-bold hover:from-purple-500 hover:to-pink-500 transform hover:scale-105 transition-all">
+                                                        ${ans}
+                                                    </button>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        ${gameState.feedback ? `
+                            <div class="text-center text-2xl font-bold animate-pulse">
+                                ${gameState.feedback}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (gameState.state === 'result') {
+                const pattern = patterns[gameState.level];
+                const answers = [...new Set(pattern.options.map(o => o.answer))];
+
+                gameArea.innerHTML = `
+                    <div class="space-y-6 text-center">
+                        <div class="text-3xl font-bold text-gray-800">
+                            🎯 이제 AI를 테스트해봐요!
+                        </div>
+                        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8">
+                            <p class="text-lg text-gray-700 mb-6">
+                                AI가 배운 내용을 바탕으로 새로운 문제를 풀 수 있을까요?
+                            </p>
+                            <div class="text-8xl mb-6">${gameState.currentQuestion.item}</div>
+                            <p class="text-xl text-gray-700 mb-6">이것은 무엇일까요?</p>
+                            <div class="flex gap-4 justify-center">
+                                ${answers.map(ans => `
+                                    <button
+                                        onclick="answerTest('${ans}')"
+                                        class="bg-gradient-to-r from-green-400 to-blue-400 text-white text-xl px-8 py-4 rounded-xl font-bold hover:from-green-500 hover:to-blue-500 transform hover:scale-105 transition-all shadow-lg">
+                                        ${ans}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ${gameState.feedback ? `
+                            <div class="text-3xl font-bold animate-pulse">
+                                ${gameState.feedback}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (gameState.state === 'complete') {
+                gameArea.innerHTML = `
+                    <div class="text-center space-y-6">
+                        <div class="text-6xl mb-4">🏆</div>
+                        <h2 class="text-4xl font-bold text-gray-800">축하합니다!</h2>
+                        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8">
+                            <p class="text-2xl font-bold text-purple-600 mb-4">
+                                총점: ${gameState.totalScore}점
+                            </p>
+                            <div class="mb-6">
+                                <h3 class="text-xl font-bold text-gray-800 mb-3">획득한 배지</h3>
+                                <div class="flex gap-3 justify-center flex-wrap">
+                                    ${gameState.badges.map(badge => `
+                                        <div class="bg-white rounded-xl px-4 py-2 shadow-md">
+                                            <svg class="w-6 h-6 text-yellow-500 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                            </svg>
+                                            <span class="font-bold text-gray-700">${badge}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl p-6 mt-6">
+                                <h3 class="text-xl font-bold text-gray-800 mb-3">배운 내용 정리</h3>
+                                <p class="text-gray-700 leading-relaxed">
+                                    🎓 <strong>데이터 학습:</strong> AI는 여러 예시를 보면서 패턴을 배워요<br>
+                                    📈 <strong>정확도 향상:</strong> 많이 연습할수록 더 정확해져요<br>
+                                    🎯 <strong>예측하기:</strong> 배운 내용으로 새로운 문제를 풀 수 있어요<br>
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onclick="location.reload()"
+                            class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xl font-bold px-10 py-4 rounded-full hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all shadow-lg">
+                            다시 하기
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 초기 렌더링
+        render();
+    </script>
+    <script src="../common.js"></script>
+</body>
+
+</html>
