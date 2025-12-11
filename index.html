@@ -1,10 +1,555 @@
-<html>
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Jayy's Home</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <h1>Jayy's Home</h1>
-  <a href="deep learning.html">딥러닝게임</h>
-  <a href="seatingarrangement.html">학급자리배치</h>
-  <a href="ladder.html">커피사다리</h>
-  <a href="AorB.html">둘중에하나</h>
-  <a href="quickmemory.html">기억순발력게임</h>
-    
+    <style>
+      :root {
+        --bg-1: #fdf2f7;
+        --bg-2: #e0f4ff;
+        --bg-3: #ffe9e0;
+        --glass-bg: rgba(255, 255, 255, 0.18);
+        --glass-border: rgba(255, 255, 255, 0.7);
+        --accent-coral: #ff8a8a;
+        --accent-sky: #7dd3fc;
+        --accent-purple: #c4b5fd;
+        --text-main: #0f172a;
+        --text-sub: #6b7280;
+        --radius-xl: 26px;
+        --radius-pill: 999px;
+        --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard",
+          "Noto Sans KR", sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 0% 0%, var(--bg-1) 0, #ffffff 40%),
+          radial-gradient(circle at 100% 0%, var(--bg-2) 0, #ffffff 40%),
+          radial-gradient(circle at 0% 100%, var(--bg-3) 0, #ffffff 50%);
+        color: var(--text-main);
+        overflow: hidden;
+      }
+
+      /* 리퀴드 글래스 배경 블롭들 */
+      .blob {
+        position: fixed;
+        width: 370px;
+        height: 370px;
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0.8;
+        z-index: -2;
+        mix-blend-mode: screen;
+        animation: floatBlob 20s ease-in-out infinite alternate;
+      }
+      .blob.coral {
+        top: -80px;
+        left: -40px;
+        background: radial-gradient(circle at 30% 30%, #ffc6c6, var(--accent-coral));
+      }
+      .blob.sky {
+        bottom: -120px;
+        right: -40px;
+        background: radial-gradient(circle at 30% 30%, #d8f3ff, var(--accent-sky));
+        animation-delay: 4s;
+      }
+      .blob.purple {
+        top: 50%;
+        left: 60%;
+        transform: translate(-50%, -50%);
+        width: 280px;
+        height: 280px;
+        background: radial-gradient(circle at 30% 30%, #ede9fe, var(--accent-purple));
+        opacity: 0.7;
+        animation-delay: 8s;
+      }
+
+      @keyframes floatBlob {
+        0% {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        50% {
+          transform: translate3d(25px, -25px, 0) scale(1.08);
+        }
+        100% {
+          transform: translate3d(-10px, 20px, 0) scale(0.98);
+        }
+      }
+
+      /* 메인 카드 */
+      .shell {
+        position: relative;
+        width: min(960px, 100% - 32px);
+        padding: 28px;
+        border-radius: var(--radius-xl);
+        background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.7),
+            rgba(255, 255, 255, 0.2)
+          );
+        box-shadow: 0 20px 55px rgba(15, 23, 42, 0.18);
+        overflow: hidden;
+        backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+      }
+
+      /* 카드 안쪽에 살짝 더 유리 느낌 레이어 */
+      .shell::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          circle at 0 0,
+          rgba(255, 255, 255, 0.6),
+          transparent 55%
+        );
+        opacity: 0.9;
+        pointer-events: none;
+      }
+
+      .shell-inner {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        gap: 32px;
+        align-items: center;
+      }
+
+      @media (max-width: 768px) {
+        .shell {
+          margin: 16px;
+          padding: 22px;
+        }
+        .shell-inner {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: var(--radius-pill);
+        background: rgba(255, 255, 255, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        font-size: 0.78rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-sub);
+        margin-bottom: 12px;
+        backdrop-filter: blur(16px);
+      }
+
+      .badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--accent-coral), var(--accent-sky));
+        box-shadow: 0 0 12px rgba(248, 113, 113, 0.7);
+      }
+
+      h1 {
+        font-size: clamp(2.4rem, 4vw, 3rem);
+        margin-bottom: 10px;
+        letter-spacing: 0.03em;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      h1 span.logo-bubble {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 16px;
+        background: radial-gradient(
+          circle at 30% 20%,
+          #ffffff,
+          rgba(255, 255, 255, 0.1)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: var(--shadow-soft);
+        backdrop-filter: blur(14px);
+        font-size: 1.1rem;
+      }
+
+      .subtitle {
+        font-size: 0.98rem;
+        color: var(--text-sub);
+        max-width: 480px;
+        line-height: 1.6;
+        margin-bottom: 22px;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      .tag {
+        padding: 4px 12px;
+        border-radius: var(--radius-pill);
+        font-size: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        background: rgba(255, 255, 255, 0.45);
+        backdrop-filter: blur(12px);
+        color: #64748b;
+      }
+
+      /* 링크 카드 영역 */
+      .nav-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      @media (max-width: 520px) {
+        .nav-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .nav-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 12px 35px rgba(15, 23, 42, 0.15);
+        backdrop-filter: blur(18px);
+        text-decoration: none;
+        color: var(--text-main);
+        overflow: hidden;
+        transition: transform 0.2s ease-out, box-shadow 0.2s ease-out,
+          background 0.2s ease-out, border-color 0.2s ease-out;
+      }
+
+      .nav-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          circle at 0 0,
+          rgba(255, 255, 255, 0.7),
+          transparent 60%
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease-out;
+      }
+
+      .nav-card:hover {
+        transform: translateY(-4px) translateZ(0) scale(1.01);
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.22);
+        border-color: rgba(255, 255, 255, 1);
+        background: rgba(255, 255, 255, 0.35);
+      }
+
+      .nav-card:hover::before {
+        opacity: 1;
+      }
+
+      .nav-text-main {
+        font-size: 0.98rem;
+        font-weight: 600;
+      }
+
+      .nav-text-sub {
+        font-size: 0.78rem;
+        color: var(--text-sub);
+      }
+
+      .nav-pill {
+        min-width: 34px;
+        height: 34px;
+        border-radius: var(--radius-pill);
+        padding-inline: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.78rem;
+        font-weight: 600;
+        background-image: linear-gradient(
+          135deg,
+          var(--accent-coral),
+          var(--accent-sky)
+        );
+        color: #0f172a;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9),
+          0 14px 30px rgba(248, 113, 113, 0.5);
+      }
+
+      .nav-pill span {
+        transform: translateY(1px);
+      }
+
+      .nav-card:hover .nav-pill {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 1),
+          0 18px 40px rgba(56, 189, 248, 0.6);
+      }
+
+      /* 오른쪽 사이드: 리퀴드 글래스 카드 */
+      .side-panel {
+        position: relative;
+      }
+
+      .glass-orb {
+        position: relative;
+        width: 100%;
+        max-width: 320px;
+        margin-left: auto;
+        aspect-ratio: 4/5;
+        border-radius: 40px;
+        background: radial-gradient(
+            circle at 20% 0%,
+            rgba(255, 255, 255, 0.9),
+            transparent 60%
+          ),
+          linear-gradient(
+            135deg,
+            rgba(255, 182, 193, 0.7),
+            rgba(135, 206, 250, 0.7),
+            rgba(196, 181, 253, 0.7)
+          );
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        box-shadow: var(--shadow-soft);
+        overflow: hidden;
+        backdrop-filter: blur(20px);
+        padding: 18px;
+      }
+
+      .glass-orb-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        overflow: hidden;
+      }
+
+      /* 물방울 느낌 */
+      .bubble {
+        position: absolute;
+        border-radius: 999px;
+        background: radial-gradient(
+          circle at 30% 20%,
+          rgba(255, 255, 255, 0.95),
+          rgba(255, 255, 255, 0.2)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 18px 35px rgba(148, 163, 184, 0.45);
+        backdrop-filter: blur(18px);
+        animation: floatBubble 16s ease-in-out infinite alternate;
+      }
+
+      .bubble.b1 {
+        width: 110px;
+        height: 110px;
+        top: 18%;
+        left: 12%;
+      }
+      .bubble.b2 {
+        width: 130px;
+        height: 130px;
+        bottom: 10%;
+        right: 4%;
+        animation-delay: 4s;
+      }
+      .bubble.b3 {
+        width: 68px;
+        height: 68px;
+        bottom: 36%;
+        left: 52%;
+        animation-delay: 8s;
+      }
+
+      @keyframes floatBubble {
+        0% {
+          transform: translate3d(0, 0, 0);
+        }
+        50% {
+          transform: translate3d(6px, -10px, 0);
+        }
+        100% {
+          transform: translate3d(-8px, 12px, 0);
+        }
+      }
+
+      .orb-text {
+        position: absolute;
+        inset: auto 16px 16px 16px;
+        padding: 10px 12px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.82);
+        font-size: 0.78rem;
+        color: var(--text-main);
+        line-height: 1.5;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .orb-text strong {
+        font-size: 0.8rem;
+      }
+
+      .orb-pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+      }
+
+      .orb-pill {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 182, 193, 0.7),
+          rgba(135, 206, 250, 0.7)
+        );
+        color: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.9);
+      }
+
+      .footer {
+        margin-top: 18px;
+        font-size: 0.72rem;
+        color: #9ca3af;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- 리퀴드 글래스 느낌 배경 -->
+    <div class="blob coral"></div>
+    <div class="blob sky"></div>
+    <div class="blob purple"></div>
+
+    <!-- 메인 글래스 카드 -->
+    <main class="shell">
+      <div class="shell-inner">
+        <!-- 왼쪽: 타이틀 + 링크들 -->
+        <section>
+          <div class="badge">
+            <span class="badge-dot"></span>
+            <span>Jayy's Playground</span>
+          </div>
+
+          <h1>
+            <span class="logo-bubble">J</span>
+            <span>Jayy's Home</span>
+          </h1>
+
+          <p class="subtitle">
+            초등학생도 즐길 수 있는 딥러닝 게임부터 학급 자리 배치, 커피 사다리까지<br />
+            Jayy 선생님의 작은 실험실에 오신 걸 환영합니다 ☕️✨
+          </p>
+
+          <div class="tag-row">
+            <span class="tag">#딥러닝</span>
+            <span class="tag">#학급운영</span>
+            <span class="tag">#미니게임</span>
+            <span class="tag">#교사툴</span>
+          </div>
+
+          <nav class="nav-grid">
+            <a href="deep learning.html" class="nav-card">
+              <div>
+                <div class="nav-text-main">딥러닝 게임</div>
+                <div class="nav-text-sub">초등 눈높이 딥러닝 체험</div>
+              </div>
+              <div class="nav-pill"><span>Play</span></div>
+            </a>
+
+            <a href="seatingarrangement.html" class="nav-card">
+              <div>
+                <div class="nav-text-main">학급 자리 배치</div>
+                <div class="nav-text-sub">공평하고 재밌는 랜덤 자리!</div>
+              </div>
+              <div class="nav-pill"><span>Arrange</span></div>
+            </a>
+
+            <a href="ladder.html" class="nav-card">
+              <div>
+                <div class="nav-text-main">커피 사다리</div>
+                <div class="nav-text-sub">오늘 커피는 누가 쏠까? ☕</div>
+              </div>
+              <div class="nav-pill"><span>Go</span></div>
+            </a>
+
+            <a href="AorB.html" class="nav-card">
+              <div>
+                <div class="nav-text-main">둘 중에 하나</div>
+                <div class="nav-text-sub">결정이 어려울 땐, 요걸로!</div>
+              </div>
+              <div class="nav-pill"><span>Pick</span></div>
+            </a>
+
+            <a href="quickmemory.html" class="nav-card">
+              <div>
+                <div class="nav-text-main">기억 순발력 게임</div>
+                <div class="nav-text-sub">순간 집중력·기억력 업!</div>
+              </div>
+              <div class="nav-pill"><span>Start</span></div>
+            </a>
+          </nav>
+
+          <div class="footer">
+            © <span id="year"></span> Jayy's Home · 작은 실험실에서 자라는 아이디어들
+          </div>
+        </section>
+
+        <!-- 오른쪽: 리퀴드 글래스 오브젝트 -->
+        <aside class="side-panel">
+          <div class="glass-orb">
+            <div class="glass-orb-inner">
+              <div class="bubble b1"></div>
+              <div class="bubble b2"></div>
+              <div class="bubble b3"></div>
+
+              <div class="orb-text">
+                <strong>Today’s Mood: Liquid Glass</strong>
+                <span>가볍게 눌러보며, 그날의 수업과 생활을 채워보는 실험실.</span>
+                <div class="orb-pill-row">
+                  <span class="orb-pill">딥러닝 맛보기</span>
+                  <span class="orb-pill">학급 운영</span>
+                  <span class="orb-pill">작은 게임들</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      // 푸터 연도 자동 갱신
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
 </html>
